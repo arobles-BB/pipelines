@@ -1,14 +1,11 @@
 package com.bloobirds.datamodel.abstraction;
 
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.extern.java.Log;
 
 import javax.persistence.Embeddable;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;

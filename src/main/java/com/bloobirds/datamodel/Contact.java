@@ -72,38 +72,17 @@ public class Contact {
     public void setStatusWithLRole(String statusPicklist) {
 
         switch (statusPicklist) {
-            case "LEAD__STATUS__NEW":
-                this.status = STATUS_NEW;
-                break;
-            case "LEAD__STATUS__DELIVERED":
-                this.status = STATUS_DELIVERED;
-                break;
-            case "LEAD__STATUS__ON_PROSPECTION":
-                this.status = STATUS_ON_PROSPECTION;
-                break;
-            case "LEAD__STATUS__CONTACTED":
-                this.status = STATUS_CONTACTED;
-                break;
-            case "LEAD__STATUS__ENGAGED":
-                this.status = STATUS_ENGAGED;
-                break;
-            case "LEAD__STATUS__MEETING":
-                this.status = STATUS_MEETING;
-                break;
-            case "LEAD__STATUS__NURTURING":
-                this.status = STATUS_NURTURING;
-                break;
-            case "LEAD__STATUS__DISCARDED":
-                this.status = STATUS_DISCARDED;
-                break;
-            case "LEAD__STATUS__CONTACT":
-                this.status = STATUS_CONTACT;
-                break;
-            case "LEAD__STATUS__BACKLOG":
-                this.status = STATUS_BACKLOG;
-                break;
-            default:
-                this.status = STATUS_NO_STATUS;
+            case "LEAD__STATUS__NEW" -> this.status = STATUS_NEW;
+            case "LEAD__STATUS__DELIVERED" -> this.status = STATUS_DELIVERED;
+            case "LEAD__STATUS__ON_PROSPECTION" -> this.status = STATUS_ON_PROSPECTION;
+            case "LEAD__STATUS__CONTACTED" -> this.status = STATUS_CONTACTED;
+            case "LEAD__STATUS__ENGAGED" -> this.status = STATUS_ENGAGED;
+            case "LEAD__STATUS__MEETING" -> this.status = STATUS_MEETING;
+            case "LEAD__STATUS__NURTURING" -> this.status = STATUS_NURTURING;
+            case "LEAD__STATUS__DISCARDED" -> this.status = STATUS_DISCARDED;
+            case "LEAD__STATUS__CONTACT" -> this.status = STATUS_CONTACT;
+            case "LEAD__STATUS__BACKLOG" -> this.status = STATUS_BACKLOG;
+            default -> this.status = STATUS_NO_STATUS;
         }
     }
 }

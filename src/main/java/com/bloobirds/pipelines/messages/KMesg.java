@@ -1,13 +1,11 @@
 package com.bloobirds.pipelines.messages;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Data;
-import java.util.ArrayList;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.Data;
 import lombok.extern.java.Log;
-import org.apache.camel.Exchange;
+
+import java.util.ArrayList;
 
 @RegisterForReflection
 @Data

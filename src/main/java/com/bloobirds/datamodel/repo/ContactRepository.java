@@ -44,8 +44,7 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
     }
 
     private static String findPicklist(KMesg data, String lroleID) {
-        String result = data.frozenModel.lead.picklistsModel.get(lroleID);
-        return result;
+        return data.frozenModel.lead.picklistsModel.get(lroleID);
     }
 
     @Transactional

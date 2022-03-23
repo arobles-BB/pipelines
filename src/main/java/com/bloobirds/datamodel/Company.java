@@ -23,7 +23,7 @@ public class Company {
     public int status; //COMPANY__STATUS
 
     @Transient
-    public LocalDate startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT"
+    public LocalDate startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT
 
     public int discardedReasons; // COMPANY__DISCARDED_REASONS
     public int nurturingReasons; // COMPANY__NURTURING_REASONS

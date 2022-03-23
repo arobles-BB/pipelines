@@ -2,7 +2,6 @@ package com.bloobirds.datamodel;
 
 import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import lombok.ToString;
 
 import javax.persistence.*;
