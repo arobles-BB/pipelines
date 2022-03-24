@@ -1,6 +1,6 @@
 package com.bloobirds.datamodel.abstraction;
 
-public enum ContactLogicRoles {
+public enum ContactLogicRoles implements LogicRoles {
 
     NONE,
     LEAD__HAS_ATTEMPTS_AFTER_REASSIGN,

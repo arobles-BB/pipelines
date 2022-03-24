@@ -21,4 +21,7 @@ public class KMesg {
 
     public boolean isCompany() {return bobjectType.equals(ObjectType.Company);}
     public boolean isLead() {return bobjectType.equals(ObjectType.Lead);}
+    public boolean isActivity() {return bobjectType.equals(ObjectType.Activity);}
+    public boolean isTask() {return bobjectType.equals(ObjectType.Task);}
+    public boolean isOpportunity() {return bobjectType.equals(ObjectType.Opportunity);}
 }

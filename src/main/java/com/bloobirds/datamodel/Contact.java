@@ -13,7 +13,8 @@ import java.util.Map;
 
 @Entity
 public class Contact {
-    public static final int STATUS_NO_STATUS = 0;
+
+    public static final int STATUS_OTHER = 0;
     public static final int STATUS_NEW = 1;    // LEAD__STATUS__NEW
     public static final int STATUS_DELIVERED = 2;  // LEAD__STATUS__DELIVERED
     public static final int STATUS_ON_PROSPECTION = 3; // LEAD__STATUS__ON_PROSPECTION
@@ -24,7 +25,7 @@ public class Contact {
     public static final int STATUS_DISCARDED = 8; // LEAD__STATUS__DISCARDED
     public static final int STATUS_CONTACT = 9;    // LEAD__STATUS__CONTACT
     public static final int STATUS_BACKLOG = 10;    // LEAD__STATUS__BACKLOG
-    final static int BBOBJECT_TYPE = 40;
+
     public String name; // LEAD__NAME
     public String surname; // LEAD__SURNAME
     public String jobTitle; // LEAD__LINKEDIN_JOB_TITLE
@@ -33,6 +34,7 @@ public class Contact {
     public String email; // LEAD__EMAIL
     @Audited
     public int status; // LEAD__STATUS
+    public String statusPicklistID; // status fieldID en caso de que no sea uno con Logic Role
 
     @EmbeddedId
     public BBObjectID objectID = new BBObjectID();
@@ -69,20 +71,4 @@ public class Contact {
         return MessageFormat.format("{0} {1}", name, surname);
     }
 
-    public void setStatusWithLRole(String statusPicklist) {
-
-        switch (statusPicklist) {
-            case "LEAD__STATUS__NEW" -> this.status = STATUS_NEW;
-            case "LEAD__STATUS__DELIVERED" -> this.status = STATUS_DELIVERED;
-            case "LEAD__STATUS__ON_PROSPECTION" -> this.status = STATUS_ON_PROSPECTION;
-            case "LEAD__STATUS__CONTACTED" -> this.status = STATUS_CONTACTED;
-            case "LEAD__STATUS__ENGAGED" -> this.status = STATUS_ENGAGED;
-            case "LEAD__STATUS__MEETING" -> this.status = STATUS_MEETING;
-            case "LEAD__STATUS__NURTURING" -> this.status = STATUS_NURTURING;
-            case "LEAD__STATUS__DISCARDED" -> this.status = STATUS_DISCARDED;
-            case "LEAD__STATUS__CONTACT" -> this.status = STATUS_CONTACT;
-            case "LEAD__STATUS__BACKLOG" -> this.status = STATUS_BACKLOG;
-            default -> this.status = STATUS_NO_STATUS;
-        }
-    }
 }

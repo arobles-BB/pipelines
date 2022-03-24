@@ -44,7 +44,9 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
     }
 
     private static String findPicklist(KMesg data, String lroleID) {
-        return data.frozenModel.lead.picklistsModel.get(lroleID);
+        String value=data.frozenModel.lead.picklistsModel.get(lroleID);
+        if(value==null) value=lroleID;
+        return value;
     }
 
     @Transactional
@@ -56,7 +58,7 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
 
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
-        id.setBBobjectID(data.beforeBobject.id.objectId);
+        id.setBBobjectID(data.afterBobject.id.objectId);
         c.objectID = id;
 
         Company co;
@@ -99,7 +101,6 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
                     String fieldID=model.get("COMPANY__ASSIGNED_TO");
                     if(fieldID!=null){
                         suid.setBBobjectID(relatedBobject.contents.get(fieldID));
-                        log.info("assignTo:"+suid.getBBobjectID());
                         break;
                     }
                 }
@@ -117,8 +118,9 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         String statusPicklistID = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__STATUS);
         if (statusPicklistID != null) {
             String statusPicklist = findPicklist(data, statusPicklistID);
-            c.setStatusWithLRole(statusPicklist);
-        } else c.status = Contact.STATUS_NO_STATUS;
+            c.status=setStatusFromLogicRole(statusPicklist);
+        } else c.status = Contact.STATUS_OTHER;
+        if(c.status==0) c.statusPicklistID=statusPicklistID;
 
         data.afterBobject.contents.forEach((k, v) -> addAttribute(c.attributes, data, k, v));
 
@@ -152,5 +154,42 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
 
 
     }
+    public int setStatusFromLogicRole(String statusPicklist) {
 
+        switch (statusPicklist) {
+            case "LEAD__STATUS__NEW" -> {
+                return Contact.STATUS_NEW;
+            }
+            case "LEAD__STATUS__DELIVERED" -> {
+                return Contact.STATUS_DELIVERED;
+            }
+            case "LEAD__STATUS__ON_PROSPECTION" -> {
+                return Contact.STATUS_ON_PROSPECTION;
+            }
+            case "LEAD__STATUS__CONTACTED" -> {
+                return Contact.STATUS_CONTACTED;
+            }
+            case "LEAD__STATUS__ENGAGED" -> {
+                return Contact.STATUS_ENGAGED;
+            }
+            case "LEAD__STATUS__MEETING" -> {
+                return Contact.STATUS_MEETING;
+            }
+            case "LEAD__STATUS__NURTURING" -> {
+                return Contact.STATUS_NURTURING;
+            }
+            case "LEAD__STATUS__DISCARDED" -> {
+                return  Contact.STATUS_DISCARDED;
+            }
+            case "LEAD__STATUS__CONTACT" -> {
+                return  Contact.STATUS_CONTACT;
+            }
+            case "LEAD__STATUS__BACKLOG" -> {
+                return  Contact.STATUS_BACKLOG;
+            }
+            default -> {
+                return Contact.STATUS_OTHER;
+            }
+        }
+    }
 }

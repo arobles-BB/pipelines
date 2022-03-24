@@ -25,8 +25,11 @@ public class TestDataRoute extends EndpointRouteBuilder {
         from(platformHttp("/Test/kmsg"))
                 .unmarshal().json(JsonLibrary.Jackson, KMesg.class)
                 .choice()
-                    .when(simple("${body.isCompany}")).to(log("Company"))
+                    .when(simple("${body.isCompany}")).bean("companyRepo")
                     .when(simple("${body.isLead}")).bean("contactRepo")
+//                    .when(simple("${body.isActivity}")).bean("activityRepo")
+  //                  .when(simple("${body.isTask}")).bean("tasktRepo")
+    //                .when(simple("${body.isOpportunity}")).bean("opportunityRepo")
                     .otherwise().to(log(" ${body.bobjectType} ?"))
                 .end()
                 .marshal().json(JsonLibrary.Jackson);

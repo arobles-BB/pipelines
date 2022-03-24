@@ -22,7 +22,7 @@ public class ExtendedAttribute {
 
     public Long numericValue;
 
-    public void assign(ContactLogicRoles lrole, String v) {
+    public void assign(LogicRoles lrole, String v) {
         if (v == null) return;
         logicRole = lrole.name();
         stringValue = v;
