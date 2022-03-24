@@ -11,6 +11,9 @@ import org.apache.camel.Body;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,22 +58,27 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         String field = data.frozenModel.company.picklistsModel.get(c.statusPicklistID);
         c.status = setStatusFromLogicRole(field);
 
-        c.sourcePicklistID= findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SOURCE);
-        c.source=setSourceFromLogicRole(c.sourcePicklistID);
+        c.sourcePicklistID = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SOURCE);
+        c.source = setSourceFromLogicRole(c.sourcePicklistID);
 
-//        c.startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT
-//
-//        c.discardedReasons; // COMPANY__DISCARDED_REASONS
-//        c.nurturingReasons; // COMPANY__NURTURING_REASONS
-//
+        field = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT);
+        if (field != null) {
+            try {
+                c.startedToProspect = LocalDateTime.parse(field, DateTimeFormatter.ISO_DATE_TIME);
+            } catch (DateTimeParseException e) {
+            }
+        }
+        c.discardedReasons = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__DISCARDED_REASONS);
+        c.nurturingReasons = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__NURTURING_REASONS);
+        c.targetMarket = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__TARGET_MARKET);
+        c.country = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__COUNTRY);
+        c.industry = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__INDUSTRY);
+        c.employeeRange = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SIZE);
+        c.scenario = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SCENARIO);
 
-//
-//        c.targetMarket; // COMPANY__TARGET_MARKET
-//        c.country; // COMPANY__COUNTRY
-//        c.industry; // COMPANY__INDUSTRY
-//        c.vertical; // ??
-//        c.employeeRange; // COMPANY__SIZE
-//        c.scenario; // COMPANY__SCENARIO
+        data.afterBobject.contents.forEach((k, v) -> addAttribute(c.attributes, data.frozenModel.company.fieldsModel.get(k), k, v));
+
+        //        c.vertical; // ??
 
         persist(c);
         return c;
@@ -78,9 +86,9 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
 
     private int setSourceFromLogicRole(String sourcePicklistID) {
         int result = Company.COMPANY__SOURCE__OTHER;
-        switch (sourcePicklistID){
-            case "COMPANY__SOURCE__OUTBOUND" -> result= Company.COMPANY__SOURCE__OUTBOUND;
-            case "COMPANY__SOURCE__INBOUND" -> result= Company.COMPANY__SOURCE__INBOUND;
+        switch (sourcePicklistID) {
+            case "COMPANY__SOURCE__OUTBOUND" -> result = Company.COMPANY__SOURCE__OUTBOUND;
+            case "COMPANY__SOURCE__INBOUND" -> result = Company.COMPANY__SOURCE__INBOUND;
         }
         return result;
     }

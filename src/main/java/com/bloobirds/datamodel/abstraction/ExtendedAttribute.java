@@ -20,7 +20,7 @@ public class ExtendedAttribute {
     @Temporal(TemporalType.TIMESTAMP)
     public Date dateValue;
 
-    public Long numericValue;
+    public Double numericValue;
 
     public void assign(LogicRoles lrole, String v) {
         if (v == null) return;
@@ -35,7 +35,7 @@ public class ExtendedAttribute {
         }
 
         try {
-            numericValue = Long.parseLong(v);
+            numericValue = Double.parseDouble(v);
         } catch (NumberFormatException e) {
         }
 

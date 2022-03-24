@@ -1,12 +1,13 @@
 package com.bloobirds.datamodel;
 
 import com.bloobirds.datamodel.abstraction.BBObjectID;
+import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.ToString;
 import org.hibernate.envers.Audited;
 
 import javax.persistence.*;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,18 +45,18 @@ public class Company {
     public String statusPicklistID; // ID en caso de que no sea uno con logic role
 
     @Transient
-    public LocalDate startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT
+    public LocalDateTime startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT
 
-    public int discardedReasons; // COMPANY__DISCARDED_REASONS
-    public int nurturingReasons; // COMPANY__NURTURING_REASONS
+    public String discardedReasons; // COMPANY__DISCARDED_REASONS
+    public String nurturingReasons; // COMPANY__NURTURING_REASONS
     public int source; // COMPANY__SOURCE
     public String sourcePicklistID;
-    public int targetMarket; // COMPANY__TARGET_MARKET
-    public int country; // COMPANY__COUNTRY
-    public int industry; // COMPANY__INDUSTRY
+    public String targetMarket; // COMPANY__TARGET_MARKET
+    public String country; // COMPANY__COUNTRY
+    public String industry; // COMPANY__INDUSTRY
     public int vertical; // ??
-    public int employeeRange; // COMPANY__SIZE
-    public int scenario; // COMPANY__SCENARIO
+    public String employeeRange; // COMPANY__SIZE
+    public String scenario; // COMPANY__SCENARIO
 
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -70,7 +71,7 @@ public class Company {
             joinColumns = {@JoinColumn(name = "BBobjectID"), @JoinColumn(name = "tenantID")}
     )
     @ToString.Exclude
-    public Map<String, String> attributes = new HashMap<>();
+    public Map<String, ExtendedAttribute> attributes = new HashMap<>();
 
 
 
