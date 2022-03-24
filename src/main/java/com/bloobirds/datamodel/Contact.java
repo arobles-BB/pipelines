@@ -39,21 +39,21 @@ public class Contact {
     @EmbeddedId
     public BBObjectID objectID = new BBObjectID();
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumns({
             @JoinColumn(name = "COtenantID", referencedColumnName = "tenantID"),
             @JoinColumn(name = "COobjectID", referencedColumnName = "BBobjectID")
     })
     public Company company;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumns({
             @JoinColumn(name = "SUtenantID", referencedColumnName = "tenantID"),
             @JoinColumn(name = "SUobjectID", referencedColumnName = "BBobjectID")
     })
     public SalesUser assignTo;
 
-    @ElementCollection(fetch = FetchType.EAGER) // Problemas con Quarkus y Envers
+    @ElementCollection(fetch = FetchType.EAGER) // Problemas con Jackson, Quarkus, Envers...
     @CollectionTable(
             joinColumns = {@JoinColumn(name = "BBobjectID"), @JoinColumn(name = "tenantID")}
     )

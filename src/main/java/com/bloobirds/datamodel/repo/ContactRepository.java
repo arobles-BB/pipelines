@@ -54,29 +54,32 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
 
         Map<String, String> flippedFieldsModel = flipHashMap(data.frozenModel.lead.fieldsModel);
 
-        Contact c = new Contact();
+        Contact c;
 
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
         id.setBBobjectID(data.afterBobject.id.objectId);
-        c.objectID = id;
-
-        Company co;
-        BBObjectID coid = new BBObjectID();
-        coid.setTenantID(data.accountId);
-        String[] parts = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__COMPANY).split("/");
-        if (parts.length == 0)
-            coid.setBBobjectID("");
-        else
-            coid.setBBobjectID(parts[parts.length - 1]);
-        co = companyRepo.findById(coid);
-        if (co == null) {
-            co = new Company();
-            co.objectID = coid;
-            companyRepo.persist(co);
+        c=findById(id);
+        if(c==null){
+            c=new Contact();
+            c.objectID = id;
         }
 
-        c.company = co;
+        Company co;
+        String[] parts = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__COMPANY).split("/");
+        if (parts.length != 0)
+        {
+            BBObjectID coid = new BBObjectID();
+            coid.setTenantID(data.accountId);
+            coid.setBBobjectID(parts[parts.length - 1]);
+            co = companyRepo.findById(coid);
+            if (co == null || c.company==null || !c.company.objectID.getBBobjectID().equals(co.objectID.getBBobjectID())) {
+                co = new Company();
+                co.objectID = coid;
+                c.company = co;
+                companyRepo.persist(co);
+            }
+        }
 
         c.name = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__NAME);
         c.surname = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__SURNAME);
@@ -94,7 +97,6 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         if (assignToId !=null && !assignToId.equals("")) {
             suid.setBBobjectID(assignToId);
         } else {
-            assignToId ="";
             for (RawObject relatedBobject : data.relatedBobjects) {
                 if(relatedBobject.isCompany()) {
                     Map<String,String> model= flipHashMap(data.frozenModel.company.fieldsModel);
@@ -107,14 +109,17 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
             }
         }
 
-        su = salesUserRepo.findById(suid);
-        if (su == null) {
-            su = new SalesUser();
-            su.objectID = suid;
-            salesUserRepo.persist(su);
+        if(suid.getBBobjectID()==null || c.assignTo==null || !c.assignTo.objectID.getBBobjectID().equals(suid.getBBobjectID())) {
+            su = salesUserRepo.findById(suid);
+            if (su == null) {
+                su = new SalesUser();
+                su.objectID = suid;
+                salesUserRepo.persist(su);
+            }
+            c.assignTo = su;
         }
 
-        c.assignTo = su;
+
         String statusPicklistID = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__STATUS);
         if (statusPicklistID != null) {
             String statusPicklist = findPicklist(data, statusPicklistID);
@@ -122,13 +127,18 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         } else c.status = Contact.STATUS_OTHER;
         if(c.status==0) c.statusPicklistID=statusPicklistID;
 
-        data.afterBobject.contents.forEach((k, v) -> addAttribute(c.attributes, data, k, v));
+
+        if(c.attributes==null) c.attributes= new HashMap<>();
+        Map<String, ExtendedAttribute> attributes=c.attributes;
+        data.afterBobject.contents.forEach((k, v) -> addAttribute(attributes, data, k, v));
 
         persist(c);
         return c;
     }
 
     private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
+
+        if(v==null) return; // bug panache
 
         String logicRole = data.frozenModel.lead.fieldsModel.get(k);
         ContactLogicRoles lrole= ContactLogicRoles.NONE;

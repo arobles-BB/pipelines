@@ -7,16 +7,19 @@ import com.bloobirds.datamodel.abstraction.CompanyLogicRoles;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
 import com.bloobirds.pipelines.messages.KMesg;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import lombok.extern.java.Log;
 import org.apache.camel.Body;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
+@Log
 @ApplicationScoped
 public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjectID> {
 
@@ -37,12 +40,18 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
     public Company newCompanyFromKMsg(@Body KMesg data) {
         Map<String, String> flippedFieldsModel = flipHashMap(data.frozenModel.company.fieldsModel);
 
-        Company c = new Company();
+        Company c;
 
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
         id.setBBobjectID(data.afterBobject.id.objectId);
-        c.objectID = id;
+
+        c= findById(id);
+        if(c==null){
+            c = new Company();
+            c.objectID = id;
+        }
+
 
         c.name = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__NAME);
 
@@ -64,7 +73,8 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         field = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT);
         if (field != null) {
             try {
-                c.startedToProspect = LocalDateTime.parse(field, DateTimeFormatter.ISO_DATE_TIME);
+                LocalDateTime d= LocalDateTime.parse(field, DateTimeFormatter.ISO_DATE_TIME);
+                c.startedToProspect = java.util.Date.from(d.atZone(ZoneId.systemDefault()).toInstant());
             } catch (DateTimeParseException e) {
             }
         }
@@ -76,9 +86,13 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         c.employeeRange = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SIZE);
         c.scenario = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SCENARIO);
 
-        data.afterBobject.contents.forEach((k, v) -> addAttribute(c.attributes, data.frozenModel.company.fieldsModel.get(k), k, v));
+
+        if(c.attributes==null) c.attributes= new HashMap<>();
+        Map<String, ExtendedAttribute> attributes=c.attributes;
+        data.afterBobject.contents.forEach((k, v) -> addAttribute(attributes, data.frozenModel.company.fieldsModel.get(k), k, v));
 
         //        c.vertical; // ??
+
 
         persist(c);
         return c;
@@ -116,6 +130,8 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
 
     private void addAttribute(Map<String, ExtendedAttribute> attributes, String logicRole, String k, String v) {
 
+        if (v==null) return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
+
         CompanyLogicRoles lrole = CompanyLogicRoles.NONE;
         if (logicRole != null && !logicRole.equals(""))
             lrole = CompanyLogicRoles.valueOf(logicRole);
@@ -135,7 +151,8 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
             case COMPANY__SCENARIO:
                 break;
             default:
-                ExtendedAttribute attribute = new ExtendedAttribute();
+                ExtendedAttribute attribute = attributes.get(k);
+                if(attribute==null) attribute=new ExtendedAttribute();
                 attribute.assign(lrole, v);
                 attributes.put(k, attribute);
                 break;

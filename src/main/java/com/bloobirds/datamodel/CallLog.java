@@ -31,7 +31,7 @@ public class CallLog extends Activity {
     public Integer pitch_used = null;
     public Integer direction = null;
 
-    @ElementCollection(fetch = FetchType.LAZY)
+    @ElementCollection(fetch = FetchType.EAGER) // Problemas con Jackson, Quarkus, Envers...
     @CollectionTable(
             joinColumns = {@JoinColumn(name = "BBObjectID"), @JoinColumn(name = "tenantID")}
     )

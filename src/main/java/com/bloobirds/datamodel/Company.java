@@ -8,6 +8,7 @@ import org.hibernate.envers.Audited;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,16 +37,15 @@ public class Company {
     public static final int COMPANY__SOURCE__INBOUND=2;
 
     @EmbeddedId
-    public BBObjectID objectID = new BBObjectID();
+    public BBObjectID objectID;
 
     public String name; //COMPANY__NAME
     @Audited
     public int status; //COMPANY__STATUS
     @Audited
     public String statusPicklistID; // ID en caso de que no sea uno con logic role
-
-    @Transient
-    public LocalDateTime startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT
+    @Temporal(TemporalType.TIMESTAMP)
+    public Date startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT
 
     public String discardedReasons; // COMPANY__DISCARDED_REASONS
     public String nurturingReasons; // COMPANY__NURTURING_REASONS
@@ -59,19 +59,19 @@ public class Company {
     public String scenario; // COMPANY__SCENARIO
 
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumns({
             @JoinColumn(name = "SUtenantID", referencedColumnName = "tenantID"),
             @JoinColumn(name = "SUobjectID", referencedColumnName = "BBobjectID")
     })
     public SalesUser assignTo; // COMPANY__ASSIGNED_TO
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.EAGER) // Problemas con Jackson, Quarkus, Envers...
     @CollectionTable(
             joinColumns = {@JoinColumn(name = "BBobjectID"), @JoinColumn(name = "tenantID")}
     )
     @ToString.Exclude
-    public Map<String, ExtendedAttribute> attributes = new HashMap<>();
+    public Map<String, ExtendedAttribute> attributes;
 
 
 

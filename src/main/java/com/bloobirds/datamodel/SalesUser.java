@@ -33,7 +33,7 @@ public class SalesUser {
         return MessageFormat.format("{0} {1}",name,surname);
     }
 
-    @ElementCollection(fetch = FetchType.LAZY)
+    @ElementCollection(fetch = FetchType.EAGER) // Problemas con Jackson, Quarkus, Envers...
     @CollectionTable(
             joinColumns = {@JoinColumn(name = "BBObjectID"), @JoinColumn(name = "tenantID")}
     )
