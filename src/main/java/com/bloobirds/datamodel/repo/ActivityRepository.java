@@ -2,10 +2,9 @@ package com.bloobirds.datamodel.repo;
 
 import com.bloobirds.datamodel.*;
 import com.bloobirds.datamodel.abstraction.Activity;
-import com.bloobirds.datamodel.abstraction.ActivityLogicRoles;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
+import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
 import com.bloobirds.pipelines.messages.KMesg;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import lombok.extern.java.Log;
 import org.apache.camel.Body;
@@ -54,15 +53,16 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
         id.setBBobjectID(data.afterBobject.id.objectId);
-        Activity a=findById(id);
-        if (a==null) a=newActivity(id, data);
-        else {} //@todo versión update
+        Activity a = findById(id);
+        if (a == null) a = newActivity(id, data);
+        else {
+        } //@todo versión update
         // no persistimos a si llegamos a este punto por que no es d eun tipo conocido
         return a;
     }
 
     private Activity newActivity(BBObjectID id, KMesg data) {
-        Activity a=null;
+        Activity a = null;
 
         Map<String, String> flippedFieldsModel = flipHashMap(data.frozenModel.activity.fieldsModel);
 
@@ -71,98 +71,90 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
             String picklistID = data.frozenModel.activity.picklistsModel.get(activityTypeId);
             if (picklistID != null) {
                 switch (picklistID) {
-                    case "ACTIVITY__TYPE__STATUS"-> a= new ActivityStatus();
-                    case "ACTIVITY__TYPE__INBOUND"-> a= new ActivityInbound();
-                    case "ACTIVITY__TYPE__NOTE"-> a= new ActivityNote();
-                    case "ACTIVITY__TYPE__MEETING"-> a= new ActivityMeeting();
-                    case "ACTIVITY__TYPE__LINKEDIN_MESSAGE"-> a= new ActivityLinkedIn();
-                    case "ACTIVITY__TYPE__EMAIL"-> a= new ActivityEmail();
-                    case "ACTIVITY__TYPE__CADENCE"-> a= new ActivityCadence();
-                    case "ACTIVITY__TYPE__CALL"-> a= new ActivityCall();
-                    default-> a= new Activity() {
+                    case "ACTIVITY__TYPE__STATUS" -> a = new ActivityStatus();
+                    case "ACTIVITY__TYPE__INBOUND" -> a = new ActivityInbound();
+                    case "ACTIVITY__TYPE__NOTE" -> a = new ActivityNote();
+                    case "ACTIVITY__TYPE__MEETING" -> a = new ActivityMeeting();
+                    case "ACTIVITY__TYPE__LINKEDIN_MESSAGE" -> a = new ActivityLinkedIn();
+                    case "ACTIVITY__TYPE__EMAIL" -> a = new ActivityEmail();
+                    case "ACTIVITY__TYPE__CADENCE" -> a = new ActivityCadence();
+                    case "ACTIVITY__TYPE__CALL" -> a = new ActivityCall();
+                    default -> a = new Activity() {
                         @Override
                         public int getActivityType() {
                             return -1;
                         }
                     };
                 }
-                a.objectID=id;
-                a.date=getActivityDate(data,flippedFieldsModel);
-                getChannel(a,data,flippedFieldsModel);
+                a.objectID = id;
+                a.date = getActivityDate(data, flippedFieldsModel);
+                getChannel(a, data, flippedFieldsModel);
 
-                a.company=getCompany(data,flippedFieldsModel);
-                a.lead=getLead(data,flippedFieldsModel);
-                a.user=getUser(data,flippedFieldsModel);
+                a.company = getCompany(data, flippedFieldsModel);
+                a.lead = getLead(data, flippedFieldsModel);
+                a.user = getUser(data, flippedFieldsModel);
 
-                if(a.company!=null) {
-                    a.targetMarket=a.company.targetMarket;
-                    a.scenario=a.company.scenario;
+                if (a.company != null) {
+                    a.targetMarket = a.company.targetMarket;
+                    a.scenario = a.company.scenario;
                 }
-                if(a.lead!=null) a.icp=a.lead.icp;
+                if (a.lead != null) a.icp = a.lead.icp;
 
-                switch(a.getActivityType()){
-                    case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndPersist((ActivityCall)a,data,flippedFieldsModel);
+                switch (a.getActivityType()) {
+                    case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndPersist((ActivityCall) a, data, flippedFieldsModel);
                 }
             }
         }
         return a;
     }
 
-
-
-    @Transactional
     private SalesUser getUser(KMesg data, Map<String, String> flippedFieldsModel) {
-        SalesUser su=null;
+        SalesUser su = null;
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
-        String suFieldID= findField(data, flippedFieldsModel,ActivityLogicRoles.ACTIVITY__USER);
-        if (suFieldID!=null) {
-            String suID=data.afterBobject.contents.get(suFieldID);
-            if(suID!=null){
-                id.setBBobjectID(suID);
-                su=salesUserRepo.findById(id);
-                if(su==null){
-                    su=new SalesUser();
-                    su.objectID=id;
-                    salesUserRepo.persist(su);
-                }
+        String suID = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__USER);
+        if (suID != null) {
+            id.setBBobjectID(suID);
+            su = salesUserRepo.findById(id);
+            if (su == null) {
+                su = new SalesUser();
+                su.objectID = id;
+                salesUserRepo.persist(su);
             }
         }
         return su;
     }
 
-    @Transactional
     private Contact getLead(KMesg data, Map<String, String> flippedFieldsModel) {
-        Contact co=null;
+        Contact co = null;
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
-        String coFieldID=findField(data,flippedFieldsModel,ActivityLogicRoles.ACTIVITY__LEAD);
-        if(coFieldID!=null)
-        {
+        String[] parts = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__LEAD).split("/");
+        if (parts.length != 0) {
+            String coFieldID = parts[parts.length - 1];
             id.setBBobjectID(coFieldID);
-            co=contactRepo.findById(id);
-            if(co==null) {
-                co=new Contact();
-                co.objectID=id;
+            co = contactRepo.findById(id);
+            if (co == null) {
+                co = new Contact();
+                co.objectID = id;
                 contactRepo.persist(co);
             }
         }
         return co;
     }
 
-    @Transactional
     private Company getCompany(KMesg data, Map<String, String> flippedFieldsModel) {
-        Company co=null;
+        Company co = null;
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
-        String coFieldID=findField(data,flippedFieldsModel,ActivityLogicRoles.ACTIVITY__COMPANY);
-        if(coFieldID!=null)
-        {
+        String[] parts = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__COMPANY).split("/");
+        if (parts.length != 0) {
+            String coFieldID = parts[parts.length - 1];
             id.setBBobjectID(coFieldID);
-            co=companyRepo.findById(id);
-            if(co==null) {
-                co=new Company();
-                co.objectID=id;
+            co = companyRepo.findById(id);
+            if (co == null) {
+                co = new Company();
+                co.objectID = id;
                 companyRepo.persist(co);
             }
         }
@@ -170,9 +162,9 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
     }
 
     private void getChannel(Activity a, KMesg data, Map<String, String> flippedFieldsModel) {
-        a.channelID= findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CHANNEL);
+        a.channelID = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CHANNEL);
 
-        if(a.channelID!=null){
+        if (a.channelID != null) {
             String picklistID = data.afterBobject.contents.get(a.channelID);
             if (picklistID != null) {
                 String channel = data.frozenModel.activity.picklistsModel.get(picklistID);
@@ -189,12 +181,12 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
 
     private Date getActivityDate(KMesg data, Map<String, String> flippedFieldsModel) {
         // ACTIVITY__TIME vs ACTIVITY__CREATION_DATETIME vs. ACTIVITY__UPDATE_DATETIME
-        String date= findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__UPDATE_DATETIME);
-        if (date==null) date= findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
-        if (date==null) date= findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CREATION_DATETIME);
-        if (date==null) return null;
-        
-        Date dateValue=null;
+        String date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__UPDATE_DATETIME);
+        if (date == null) date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
+        if (date == null) date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CREATION_DATETIME);
+        if (date == null) return null;
+
+        Date dateValue = null;
 
         try {
             LocalDateTime dateToConvert = LocalDateTime.parse(date, DateTimeFormatter.ISO_DATE_TIME);

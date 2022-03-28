@@ -3,7 +3,7 @@ package com.bloobirds.datamodel.repo;
 import com.bloobirds.datamodel.Company;
 import com.bloobirds.datamodel.SalesUser;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
-import com.bloobirds.datamodel.abstraction.CompanyLogicRoles;
+import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
 import com.bloobirds.pipelines.messages.KMesg;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;

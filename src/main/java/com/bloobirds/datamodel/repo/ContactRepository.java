@@ -4,7 +4,7 @@ import com.bloobirds.datamodel.Company;
 import com.bloobirds.datamodel.Contact;
 import com.bloobirds.datamodel.SalesUser;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
-import com.bloobirds.datamodel.abstraction.ContactLogicRoles;
+import com.bloobirds.datamodel.abstraction.logicroles.ContactLogicRoles;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
 import com.bloobirds.pipelines.messages.KMesg;
 import com.bloobirds.pipelines.messages.RawObject;

@@ -1,4 +1,6 @@
-package com.bloobirds.datamodel.abstraction;
+package com.bloobirds.datamodel.abstraction.logicroles;
+
+import com.bloobirds.datamodel.abstraction.LogicRoles;
 
 public enum ActivityCallLogicRoles implements LogicRoles {
     ACTIVITY__CALL_USER_PHONE_NUMBER,
