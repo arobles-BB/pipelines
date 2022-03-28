@@ -1,6 +1,7 @@
 package com.bloobirds.datamodel.repo;
 
 import com.bloobirds.datamodel.ActivityCall;
+import com.bloobirds.datamodel.abstraction.Activity;
 import com.bloobirds.datamodel.abstraction.logicroles.ActivityCallLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
@@ -28,7 +29,7 @@ public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCal
     }
 
     @Transactional
-    public void newAndPersist(ActivityCall a, KMesg data, Map<String, String> flippedFieldsModel) {
+    public void newAndUpdate(ActivityCall a, KMesg data, Map<String, String> flippedFieldsModel) {
         a.note = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__NOTE);
 
         a.origin = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__CALL_USER_PHONE_NUMBER);
@@ -86,7 +87,7 @@ public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCal
             }
         }
 
-        a.attributes = new HashMap<>();
+        if(a.attributes==null) a.attributes = new HashMap<>();
         data.afterBobject.contents.forEach((k, v) -> addAttribute(a.attributes, data.frozenModel.activity.fieldsModel.get(k), k, v));
         persist(a);
     }

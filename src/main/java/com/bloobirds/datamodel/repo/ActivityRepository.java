@@ -55,10 +55,32 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         id.setBBobjectID(data.afterBobject.id.objectId);
         Activity a = findById(id);
         if (a == null) a = newActivity(id, data);
-        else {
-        } //@todo versión update
-        // no persistimos a si llegamos a este punto por que no es d eun tipo conocido
+        else updateActivity(a, data);
+        // no persistimos activity si llegamos a este punto sin guardar es por que no es d eun tipo conocido
         return a;
+    }
+
+    private void updateActivity(Activity a, KMesg data) {
+        Map<String, String> flippedFieldsModel = flipHashMap(data.frozenModel.activity.fieldsModel);
+        a.date = getActivityDate(data, flippedFieldsModel);
+        getChannel(a, data, flippedFieldsModel);
+
+        Company co=getCompany(data, flippedFieldsModel);
+        Contact le=getLead(data, flippedFieldsModel);
+        SalesUser su= getUser(data, flippedFieldsModel);
+        if(a.company!=null && co!=null && !co.objectID.getBBobjectID().equals(a.company.objectID.getBBobjectID())) {
+            a.company =co;
+            a.targetMarket = a.company.targetMarket;
+            a.scenario = a.company.scenario;
+        }
+        if(a.lead!=null && le!=null && !le.objectID.getBBobjectID().equals(a.lead.objectID.getBBobjectID())) a.lead =le;
+        if(a.user!=null && su!=null && !su.objectID.getBBobjectID().equals(a.user.objectID.getBBobjectID())) {
+            a.user =su;
+            a.icp = a.lead.icp;
+        }
+        switch (a.getActivityType()){
+            case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndUpdate((ActivityCall) a,data,flippedFieldsModel);
+        }
     }
 
     private Activity newActivity(BBObjectID id, KMesg data) {
@@ -101,7 +123,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
                 if (a.lead != null) a.icp = a.lead.icp;
 
                 switch (a.getActivityType()) {
-                    case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndPersist((ActivityCall) a, data, flippedFieldsModel);
+                    case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndUpdate((ActivityCall) a, data, flippedFieldsModel);
                 }
             }
         }
