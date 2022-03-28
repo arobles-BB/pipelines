@@ -1,6 +1,7 @@
 package com.bloobirds.datamodel;
 
 import com.bloobirds.datamodel.abstraction.BBObjectID;
+import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.ToString;
 
@@ -38,6 +39,6 @@ public class SalesUser {
             joinColumns = {@JoinColumn(name = "BBObjectID"), @JoinColumn(name = "tenantID")}
     )
     @ToString.Exclude
-    public Map<String, String> attributes = new HashMap<>();
+    public Map<String, ExtendedAttribute> attributes = new HashMap<>();
 
 }

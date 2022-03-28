@@ -6,17 +6,21 @@ import javax.persistence.*;
 
 
 @Entity
-@DiscriminatorValue("13")
-public class Meeting extends Activity {
-
+@DiscriminatorValue("3")
+public class ActivityMeeting extends Activity {
+//    ACTIVITY__MEETING_ID
+//    ACTIVITY__MEETING_RESULT
+//    ACTIVITY__MEETING_TITLE
+//    MEETING__TYPE
+//    ACTIVITY__ACCOUNT_EXECUTIVE,
 
     public int meetingResults;
     public int source;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-            @JoinColumn(name = "SUtenantID", referencedColumnName = "tenantID"),
-            @JoinColumn(name = "SUobjectID", referencedColumnName = "BBobjectID")
+            @JoinColumn(name = "MEtenantID", referencedColumnName = "tenantID"),
+            @JoinColumn(name = "MEobjectID", referencedColumnName = "BBobjectID")
     })
     public SalesUser assignTo;
 
@@ -26,7 +30,7 @@ public class Meeting extends Activity {
     }
 
     public int getActivityType() {
-        return Activity.TYPE_MEETING;
+        return Activity.ACTIVITY__TYPE__MEETING;
     }
 
 }

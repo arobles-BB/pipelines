@@ -87,6 +87,7 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         c.phoneNumber = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__PHONE);
         c.email = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__EMAIL);
         c.linkedIn = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__LINKEDIN_URL);
+        c.icp = findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__ICP);
 
         SalesUser su;
 
@@ -165,41 +166,20 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
 
     }
     public int setStatusFromLogicRole(String statusPicklist) {
+        int result=Contact.STATUS_OTHER;
 
         switch (statusPicklist) {
-            case "LEAD__STATUS__NEW" -> {
-                return Contact.STATUS_NEW;
-            }
-            case "LEAD__STATUS__DELIVERED" -> {
-                return Contact.STATUS_DELIVERED;
-            }
-            case "LEAD__STATUS__ON_PROSPECTION" -> {
-                return Contact.STATUS_ON_PROSPECTION;
-            }
-            case "LEAD__STATUS__CONTACTED" -> {
-                return Contact.STATUS_CONTACTED;
-            }
-            case "LEAD__STATUS__ENGAGED" -> {
-                return Contact.STATUS_ENGAGED;
-            }
-            case "LEAD__STATUS__MEETING" -> {
-                return Contact.STATUS_MEETING;
-            }
-            case "LEAD__STATUS__NURTURING" -> {
-                return Contact.STATUS_NURTURING;
-            }
-            case "LEAD__STATUS__DISCARDED" -> {
-                return  Contact.STATUS_DISCARDED;
-            }
-            case "LEAD__STATUS__CONTACT" -> {
-                return  Contact.STATUS_CONTACT;
-            }
-            case "LEAD__STATUS__BACKLOG" -> {
-                return  Contact.STATUS_BACKLOG;
-            }
-            default -> {
-                return Contact.STATUS_OTHER;
-            }
+            case "LEAD__STATUS__NEW" -> result= Contact.STATUS_NEW;
+            case "LEAD__STATUS__DELIVERED" -> result=  Contact.STATUS_DELIVERED;
+            case "LEAD__STATUS__ON_PROSPECTION" ->result=  Contact.STATUS_ON_PROSPECTION;
+            case "LEAD__STATUS__CONTACTED" -> result=  Contact.STATUS_CONTACTED;
+            case "LEAD__STATUS__ENGAGED" ->result= Contact.STATUS_ENGAGED;
+            case "LEAD__STATUS__MEETING" -> result=  Contact.STATUS_MEETING;
+            case "LEAD__STATUS__NURTURING" -> result=  Contact.STATUS_NURTURING;
+            case "LEAD__STATUS__DISCARDED" -> result=   Contact.STATUS_DISCARDED;
+            case "LEAD__STATUS__CONTACT" -> result=   Contact.STATUS_CONTACT;
+            case "LEAD__STATUS__BACKLOG" -> result=   Contact.STATUS_BACKLOG;
         }
+        return result;
     }
 }

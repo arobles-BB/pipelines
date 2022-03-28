@@ -8,7 +8,6 @@ import org.hibernate.envers.Audited;
 
 import javax.persistence.*;
 import java.text.MessageFormat;
-import java.util.HashMap;
 import java.util.Map;
 
 @Entity
@@ -32,8 +31,10 @@ public class Contact {
     public String linkedIn; // LEAD__LINKEDIN_URL
     public String phoneNumber; // LEAD__PHONE
     public String email; // LEAD__EMAIL
+    public String icp; // LEAD__ICP
     @Audited
     public int status; // LEAD__STATUS
+    @Audited
     public String statusPicklistID; // status fieldID en caso de que no sea uno con Logic Role
 
     @EmbeddedId
@@ -58,7 +59,7 @@ public class Contact {
             joinColumns = {@JoinColumn(name = "BBobjectID"), @JoinColumn(name = "tenantID")}
     )
     @ToString.Exclude
-    public Map<String, ExtendedAttribute> attributes = new HashMap<>();
+    public Map<String, ExtendedAttribute> attributes;
 
     @JsonIgnore
     public String getAssignToFullName() {
