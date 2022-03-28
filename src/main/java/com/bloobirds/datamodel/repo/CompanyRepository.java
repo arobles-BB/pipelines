@@ -5,12 +5,14 @@ import com.bloobirds.datamodel.SalesUser;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
+import com.bloobirds.pipelines.messages.Action;
 import com.bloobirds.pipelines.messages.KMesg;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import lombok.extern.java.Log;
 import org.apache.camel.Body;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -22,6 +24,12 @@ import java.util.Map;
 @Log
 @ApplicationScoped
 public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjectID> {
+
+    @Inject
+    ActivityRepository activityRepo;
+
+    @Inject
+    ContactRepository contactRepo;
 
     private static Map<String, String> flipHashMap(Map<String, String> map) {
         Map<String, String> result = new HashMap<>();
@@ -47,6 +55,14 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         id.setBBobjectID(data.afterBobject.id.objectId);
 
         c= findById(id);
+        if (data.action.equals(Action.DELETE)) {
+            if (c!=null) {
+                activityRepo.deleteByCompany(c);
+                contactRepo.removeCompany(c);
+                delete(c);
+            }
+            return c;
+        }
         if(c==null){
             c = new Company();
             c.objectID = id;

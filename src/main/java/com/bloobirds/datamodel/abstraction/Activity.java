@@ -5,6 +5,11 @@ import com.bloobirds.datamodel.Contact;
 import com.bloobirds.datamodel.SalesUser;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import lombok.ToString;
+import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.CascadeType;
+
 
 import javax.persistence.*;
 import java.util.HashMap;
@@ -87,13 +92,11 @@ public abstract class Activity extends PanacheEntityBase {
     @CollectionTable(
             joinColumns = {@JoinColumn(name = "BBObjectID"), @JoinColumn(name = "tenantID")}
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "BBObjectID")
+    @Cascade(value= {CascadeType.ALL})
     @ToString.Exclude
     public Map<String, ExtendedAttribute> attributes = new HashMap<>();
-
-    public String getUserFullName() {
-        if (user == null) return "";
-        else return user.getFullName();
-    }
 
     public abstract int getActivityType(); //    ACTIVITY__TYPE,
 }

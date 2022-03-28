@@ -15,6 +15,7 @@ import javax.transaction.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.bloobirds.datamodel.abstraction.logicroles.ActivityCallLogicRoles.ACTIVITY__CALL_NONE;
 import static com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles.valueOf;
 
 @Log
@@ -146,6 +147,7 @@ public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCal
                 }
             } else {
                 ExtendedAttribute attribute = attributes.get(k);
+                attribute.assign(ACTIVITY__CALL_NONE, v);
                 if (attribute == null) attribute = new ExtendedAttribute();
                 attributes.put(k, attribute);
             }

@@ -4,7 +4,10 @@ import com.bloobirds.datamodel.*;
 import com.bloobirds.datamodel.abstraction.Activity;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
+import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
+import com.bloobirds.pipelines.messages.Action;
 import com.bloobirds.pipelines.messages.KMesg;
+import com.bloobirds.pipelines.messages.RawObject;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import lombok.extern.java.Log;
 import org.apache.camel.Body;
@@ -54,6 +57,10 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         id.setTenantID(data.accountId);
         id.setBBobjectID(data.afterBobject.id.objectId);
         Activity a = findById(id);
+        if (data.action.equals(Action.DELETE)) {
+            if (a!=null) delete(a);
+            return a;
+        }
         if (a == null) a = newActivity(id, data);
         else updateActivity(a, data);
         // no persistimos activity si llegamos a este punto sin guardar es por que no es d eun tipo conocido
@@ -177,6 +184,29 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
             if (co == null) {
                 co = new Company();
                 co.objectID = id;
+                int i=0;
+                while(!data.relatedBobjects.get(i).isCompany()) i++;
+                RawObject relatedCo=data.relatedBobjects.get(i);
+
+                Map<String,String> flippedCompanyModel= flipHashMap(data.frozenModel.company.fieldsModel);
+
+                String fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__NAME.name());
+                co.name = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__DISCARDED_REASONS.name());
+                co.discardedReasons = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__NURTURING_REASONS.name());
+                co.nurturingReasons = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__TARGET_MARKET.name());
+                co.targetMarket = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__COUNTRY.name());
+                co.country = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__INDUSTRY.name());
+                co.industry = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__SIZE.name());
+                co.employeeRange = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__SCENARIO.name());
+                co.scenario = relatedCo.contents.get(fieldID);
+
                 companyRepo.persist(co);
             }
         }
@@ -203,8 +233,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
 
     private Date getActivityDate(KMesg data, Map<String, String> flippedFieldsModel) {
         // ACTIVITY__TIME vs ACTIVITY__CREATION_DATETIME vs. ACTIVITY__UPDATE_DATETIME
-        String date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__UPDATE_DATETIME);
-        if (date == null) date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
+        String date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
         if (date == null) date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CREATION_DATETIME);
         if (date == null) return null;
 
@@ -219,4 +248,13 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         return dateValue;
     }
 
+    @Transactional
+    public void deleteByContact(Contact c) {
+        delete("lead",c);
+    }
+
+    @Transactional
+    public void deleteByCompany(Company c) {
+        delete("company",c);
+    }
 }

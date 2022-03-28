@@ -9,5 +9,6 @@ public enum ActivityCallLogicRoles implements LogicRoles {
     ACTIVITY__PITCH_DONE,
     ACTIVITY__PITCH,
     ACTIVITY__DIRECTION,
-    ACTIVITY__NOTE
+    ACTIVITY__NOTE,
+    ACTIVITY__CALL_NONE
 }

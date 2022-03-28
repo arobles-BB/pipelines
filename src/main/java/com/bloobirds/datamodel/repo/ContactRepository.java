@@ -3,9 +3,12 @@ package com.bloobirds.datamodel.repo;
 import com.bloobirds.datamodel.Company;
 import com.bloobirds.datamodel.Contact;
 import com.bloobirds.datamodel.SalesUser;
+import com.bloobirds.datamodel.abstraction.Activity;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
+import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.ContactLogicRoles;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
+import com.bloobirds.pipelines.messages.Action;
 import com.bloobirds.pipelines.messages.KMesg;
 import com.bloobirds.pipelines.messages.RawObject;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
@@ -16,6 +19,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Log
@@ -27,6 +31,9 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
 
     @Inject
     SalesUserRepository salesUserRepo;
+
+    @Inject
+    ActivityRepository activityRepo;
 
     //@todo no hay protección a nulls!
 
@@ -60,6 +67,13 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         id.setTenantID(data.accountId);
         id.setBBobjectID(data.afterBobject.id.objectId);
         c=findById(id);
+        if (data.action.equals(Action.DELETE)) {
+            if (c!=null) {
+                activityRepo.deleteByContact(c);
+                delete(c);
+            }
+            return c;
+        }
         if(c==null){
             c=new Contact();
             c.objectID = id;
@@ -73,9 +87,35 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
             coid.setTenantID(data.accountId);
             coid.setBBobjectID(parts[parts.length - 1]);
             co = companyRepo.findById(coid);
-            if (co == null || c.company==null || !c.company.objectID.getBBobjectID().equals(co.objectID.getBBobjectID())) {
+            if(co == null) {
                 co = new Company();
                 co.objectID = coid;
+
+                int i=0;
+                while(!data.relatedBobjects.get(i).isCompany()) i++;
+                RawObject relatedCo=data.relatedBobjects.get(i);
+
+                Map<String,String> flippedCompanyModel= flipHashMap(data.frozenModel.company.fieldsModel);
+
+                String fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__NAME.name());
+                co.name = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__DISCARDED_REASONS.name());
+                co.discardedReasons = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__NURTURING_REASONS.name());
+                co.nurturingReasons = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__TARGET_MARKET.name());
+                co.targetMarket = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__COUNTRY.name());
+                co.country = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__INDUSTRY.name());
+                co.industry = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__SIZE.name());
+                co.employeeRange = relatedCo.contents.get(fieldID);
+                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__SCENARIO.name());
+                co.scenario = relatedCo.contents.get(fieldID);
+
+            }
+            if ( c.company==null || !c.company.objectID.getBBobjectID().equals(co.objectID.getBBobjectID())) {
                 c.company = co;
                 companyRepo.persist(co);
             }
@@ -101,7 +141,7 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
             for (RawObject relatedBobject : data.relatedBobjects) {
                 if(relatedBobject.isCompany()) {
                     Map<String,String> model= flipHashMap(data.frozenModel.company.fieldsModel);
-                    String fieldID=model.get("COMPANY__ASSIGNED_TO");
+                    String fieldID=model.get(CompanyLogicRoles.COMPANY__ASSIGNED_TO.name());
                     if(fieldID!=null){
                         suid.setBBobjectID(relatedBobject.contents.get(fieldID));
                         break;
@@ -181,5 +221,10 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
             case "LEAD__STATUS__BACKLOG" -> result=   Contact.STATUS_BACKLOG;
         }
         return result;
+    }
+
+    @Transactional
+    public void removeCompany(Company c) {
+        update("SET COobjectID = null where COobjectID = ?1",c.objectID.getBBobjectID());
     }
 }

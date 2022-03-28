@@ -24,11 +24,6 @@ public class ActivityMeeting extends Activity {
     })
     public SalesUser assignTo;
 
-    public String getAssignToFullName() {
-        if (assignTo == null) return "";
-        else return assignTo.getFullName();
-    }
-
     public int getActivityType() {
         return Activity.ACTIVITY__TYPE__MEETING;
     }

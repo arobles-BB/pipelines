@@ -4,6 +4,9 @@ import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.ToString;
+import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.envers.Audited;
 
 import javax.persistence.*;
@@ -65,14 +68,11 @@ public class Company {
     @CollectionTable(
             joinColumns = {@JoinColumn(name = "BBobjectID"), @JoinColumn(name = "tenantID")}
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "BBObjectID")
+    @Cascade(value= {org.hibernate.annotations.CascadeType.ALL})
     @ToString.Exclude
     public Map<String, ExtendedAttribute> attributes;
 
-
-    @JsonIgnore
-    public String getAssignToFullName() {
-        if (assignTo == null) return "";
-        else return assignTo.getFullName();
-    }
 }
 
