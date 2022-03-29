@@ -37,6 +37,9 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
     @Inject
     ActivityCallRepository callRepo;
 
+    @Inject
+    OpportunityRepository opportunityRepo;
+
     @Transactional
     public Activity newActivityFromKMsg(@Body KMesg data) {
         BBObjectID id = new BBObjectID();
@@ -109,6 +112,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
                 a.company = getCompany(data, flippedFieldsModel);
                 a.lead = getLead(data, flippedFieldsModel);
                 a.user = getUser(data, flippedFieldsModel);
+                a.opportunity = getOpportunity(data, flippedFieldsModel);
 
                 if (a.company != null) {
                     a.targetMarket = a.company.targetMarket;
@@ -122,6 +126,24 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
             }
         }
         return a;
+    }
+
+    private Opportunity getOpportunity(KMesg data, Map<String, String> flippedFieldsModel) {
+        Opportunity o=null;
+        BBObjectID id = new BBObjectID();
+        id.setTenantID(data.accountId);
+        String oID = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__OPPORTUNITY);
+        if (oID != null) {
+            id.setBBobjectID(oID);
+            o = opportunityRepo.findById(id);
+            if(o==null){
+                o = new Opportunity();
+                o.objectID= id;
+                opportunityRepo.persist(o);
+            }
+        }
+
+        return o;
     }
 
     private SalesUser getUser(KMesg data, Map<String, String> flippedFieldsModel) {
@@ -146,7 +168,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
         String[] parts = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__LEAD).split("/");
-        if (parts.length != 0) {
+        if (parts.length ==3) {
             String coFieldID = parts[parts.length - 1];
             id.setBBobjectID(coFieldID);
             co = contactRepo.findById(id);
@@ -164,7 +186,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
         String[] parts = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__COMPANY).split("/");
-        if (parts.length != 0) {
+        if (parts.length ==3) {
             String coFieldID = parts[parts.length - 1];
             id.setBBobjectID(coFieldID);
             co = companyRepo.findById(id);

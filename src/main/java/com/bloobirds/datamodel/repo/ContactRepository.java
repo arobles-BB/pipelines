@@ -60,7 +60,7 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
 
         Company co;
         String[] parts = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__COMPANY).split("/");
-        if (parts.length != 0) {
+        if (parts.length ==3) {
             BBObjectID coid = new BBObjectID();
             coid.setTenantID(data.accountId);
             coid.setBBobjectID(parts[parts.length - 1]);

@@ -6,6 +6,7 @@ import lombok.ToString;
 import org.hibernate.annotations.Cascade;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.envers.Audited;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -56,7 +57,9 @@ public class Opportunity {
     public int type; //    OPPORTUNITY__TYPE
     public String typeFieldID;
 
+    @Audited
     public int status; //    OPPORTUNITY__STATUS
+    @Audited
     public String statusFieldID;
     public Date creationDate; //    OPPORTUNITY__CREATION_DATE, //    OPPORTUNITY__CREATION_DATETIME,
     public Date closingDate; //    OPPORTUNITY__CLOSE_DATE,

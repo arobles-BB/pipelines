@@ -71,7 +71,7 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
         if (typePicklistID != null) {
             String typePicklist = KMesg.findPicklist(data, data.frozenModel.opportunity.picklistsModel, typePicklistID);
             o.type = setTypeFromLogicRole(typePicklistID);
-        } else o.status = Opportunity.OPPORTUNITY__STATUS__NONE;
+        } else o.type = Opportunity.OPPORTUNITY__TYPE__NONE;
         o.typeFieldID = typePicklistID;
 
 
@@ -99,7 +99,7 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
 
         Company co;
         String[] parts = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__COMPANY).split("/");
-        if (parts.length != 0) {
+        if (parts.length == 3) {
             BBObjectID coid = new BBObjectID();
             coid.setTenantID(data.accountId);
             coid.setBBobjectID(parts[parts.length - 1]);
@@ -174,7 +174,6 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
     }
 
     private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
-
         if (v == null) return; // bug panache
 
         String logicRole = data.frozenModel.opportunity.fieldsModel.get(k);
