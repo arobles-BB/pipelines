@@ -228,5 +228,9 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
         }
         return result;
     }
+
+    public void deleteByCompany(Company c) {
+        delete("company",c);
+    }
 }
 

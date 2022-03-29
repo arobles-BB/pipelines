@@ -31,6 +31,9 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
     @Inject
     ContactRepository contactRepo;
 
+    @Inject
+    OpportunityRepository opportunityRepo;
+
     @Transactional
     public Company newCompanyFromKMsg(@Body KMesg data) {
         Map<String, String> flippedFieldsModel = KMesg.flipHashMap(data.frozenModel.company.fieldsModel);
@@ -44,6 +47,7 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         c = findById(id);
         if (data.action.equals(Action.DELETE)) {
             if (c != null) {
+                opportunityRepo.deleteByCompany(c);
                 activityRepo.deleteByCompany(c);
                 contactRepo.removeCompany(c);
                 delete(c);

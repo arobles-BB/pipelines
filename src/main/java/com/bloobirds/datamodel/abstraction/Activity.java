@@ -2,6 +2,7 @@ package com.bloobirds.datamodel.abstraction;
 
 import com.bloobirds.datamodel.Company;
 import com.bloobirds.datamodel.Contact;
+import com.bloobirds.datamodel.Opportunity;
 import com.bloobirds.datamodel.SalesUser;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import lombok.ToString;
@@ -87,6 +88,13 @@ public abstract class Activity extends PanacheEntityBase {
     })
     public Contact lead;     // ACTIVITY__LEAD
     // ACTIVITY__LEAD_EMAIL
+
+    @ManyToOne
+    @JoinColumns({
+            @JoinColumn(name = "OPtenantID", referencedColumnName = "tenantID"),
+            @JoinColumn(name = "OPobjectID", referencedColumnName = "BBobjectID")
+    })
+    public Opportunity opportunity;     // ACTIVITY__OPPORTUNITY
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
