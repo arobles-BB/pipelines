@@ -41,7 +41,7 @@ public class Contact {
     public String statusPicklistID; // status fieldID en caso de que no sea uno con Logic Role
 
     @EmbeddedId
-    public BBObjectID objectID = new BBObjectID();
+    public BBObjectID objectID;
 
     @ManyToOne
     @JoinColumns({

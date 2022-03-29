@@ -20,7 +20,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 
 @Log
@@ -38,19 +37,6 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
     @Inject
     ActivityCallRepository callRepo;
 
-    private static Map<String, String> flipHashMap(Map<String, String> map) {
-        Map<String, String> result = new HashMap<>();
-        map.forEach((k, v) -> result.put(v, k));
-        return result;
-    }
-
-    private static String findField(KMesg data, Map<String, String> flippedFieldsModel, ActivityLogicRoles lrole) {
-        String result = "";
-        String fID = flippedFieldsModel.get(lrole.name());
-        if (fID != null) result = data.afterBobject.contents.get(fID);
-        return result;
-    }
-
     @Transactional
     public Activity newActivityFromKMsg(@Body KMesg data) {
         BBObjectID id = new BBObjectID();
@@ -58,7 +44,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         id.setBBobjectID(data.afterBobject.id.objectId);
         Activity a = findById(id);
         if (data.action.equals(Action.DELETE)) {
-            if (a!=null) delete(a);
+            if (a != null) delete(a);
             return a;
         }
         if (a == null) a = newActivity(id, data);
@@ -68,34 +54,35 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
     }
 
     private void updateActivity(Activity a, KMesg data) {
-        Map<String, String> flippedFieldsModel = flipHashMap(data.frozenModel.activity.fieldsModel);
+        Map<String, String> flippedFieldsModel = KMesg.flipHashMap(data.frozenModel.activity.fieldsModel);
         a.date = getActivityDate(data, flippedFieldsModel);
         getChannel(a, data, flippedFieldsModel);
 
-        Company co=getCompany(data, flippedFieldsModel);
-        Contact le=getLead(data, flippedFieldsModel);
-        SalesUser su= getUser(data, flippedFieldsModel);
-        if(a.company!=null && co!=null && !co.objectID.getBBobjectID().equals(a.company.objectID.getBBobjectID())) {
-            a.company =co;
+        Company co = getCompany(data, flippedFieldsModel);
+        Contact le = getLead(data, flippedFieldsModel);
+        SalesUser su = getUser(data, flippedFieldsModel);
+        if (a.company != null && co != null && !co.objectID.getBBobjectID().equals(a.company.objectID.getBBobjectID())) {
+            a.company = co;
             a.targetMarket = a.company.targetMarket;
             a.scenario = a.company.scenario;
         }
-        if(a.lead!=null && le!=null && !le.objectID.getBBobjectID().equals(a.lead.objectID.getBBobjectID())) a.lead =le;
-        if(a.user!=null && su!=null && !su.objectID.getBBobjectID().equals(a.user.objectID.getBBobjectID())) {
-            a.user =su;
+        if (a.lead != null && le != null && !le.objectID.getBBobjectID().equals(a.lead.objectID.getBBobjectID()))
+            a.lead = le;
+        if (a.user != null && su != null && !su.objectID.getBBobjectID().equals(a.user.objectID.getBBobjectID())) {
+            a.user = su;
             a.icp = a.lead.icp;
         }
-        switch (a.getActivityType()){
-            case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndUpdate((ActivityCall) a,data,flippedFieldsModel);
+        switch (a.getActivityType()) {
+            case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndUpdate((ActivityCall) a, data, flippedFieldsModel);
         }
     }
 
     private Activity newActivity(BBObjectID id, KMesg data) {
         Activity a = null;
 
-        Map<String, String> flippedFieldsModel = flipHashMap(data.frozenModel.activity.fieldsModel);
+        Map<String, String> flippedFieldsModel = KMesg.flipHashMap(data.frozenModel.activity.fieldsModel);
 
-        String activityTypeId = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TYPE);// ACTIVITY__TYPE
+        String activityTypeId = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TYPE);// ACTIVITY__TYPE
         if (activityTypeId != null) {
             String picklistID = data.frozenModel.activity.picklistsModel.get(activityTypeId);
             if (picklistID != null) {
@@ -141,7 +128,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         SalesUser su = null;
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
-        String suID = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__USER);
+        String suID = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__USER);
         if (suID != null) {
             id.setBBobjectID(suID);
             su = salesUserRepo.findById(id);
@@ -158,7 +145,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         Contact co = null;
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
-        String[] parts = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__LEAD).split("/");
+        String[] parts = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__LEAD).split("/");
         if (parts.length != 0) {
             String coFieldID = parts[parts.length - 1];
             id.setBBobjectID(coFieldID);
@@ -176,7 +163,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         Company co = null;
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
-        String[] parts = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__COMPANY).split("/");
+        String[] parts = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__COMPANY).split("/");
         if (parts.length != 0) {
             String coFieldID = parts[parts.length - 1];
             id.setBBobjectID(coFieldID);
@@ -184,27 +171,27 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
             if (co == null) {
                 co = new Company();
                 co.objectID = id;
-                int i=0;
-                while(!data.relatedBobjects.get(i).isCompany()) i++;
-                RawObject relatedCo=data.relatedBobjects.get(i);
+                int i = 0;
+                while (!data.relatedBobjects.get(i).isCompany()) i++;
+                RawObject relatedCo = data.relatedBobjects.get(i);
 
-                Map<String,String> flippedCompanyModel= flipHashMap(data.frozenModel.company.fieldsModel);
+                Map<String, String> flippedCompanyModel = KMesg.flipHashMap(data.frozenModel.company.fieldsModel);
 
-                String fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__NAME.name());
+                String fieldID = flippedCompanyModel.get(CompanyLogicRoles.COMPANY__NAME.name());
                 co.name = relatedCo.contents.get(fieldID);
-                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__DISCARDED_REASONS.name());
+                fieldID = flippedCompanyModel.get(CompanyLogicRoles.COMPANY__DISCARDED_REASONS.name());
                 co.discardedReasons = relatedCo.contents.get(fieldID);
-                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__NURTURING_REASONS.name());
+                fieldID = flippedCompanyModel.get(CompanyLogicRoles.COMPANY__NURTURING_REASONS.name());
                 co.nurturingReasons = relatedCo.contents.get(fieldID);
-                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__TARGET_MARKET.name());
+                fieldID = flippedCompanyModel.get(CompanyLogicRoles.COMPANY__TARGET_MARKET.name());
                 co.targetMarket = relatedCo.contents.get(fieldID);
-                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__COUNTRY.name());
+                fieldID = flippedCompanyModel.get(CompanyLogicRoles.COMPANY__COUNTRY.name());
                 co.country = relatedCo.contents.get(fieldID);
-                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__INDUSTRY.name());
+                fieldID = flippedCompanyModel.get(CompanyLogicRoles.COMPANY__INDUSTRY.name());
                 co.industry = relatedCo.contents.get(fieldID);
-                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__SIZE.name());
+                fieldID = flippedCompanyModel.get(CompanyLogicRoles.COMPANY__SIZE.name());
                 co.employeeRange = relatedCo.contents.get(fieldID);
-                fieldID=flippedCompanyModel.get(CompanyLogicRoles.COMPANY__SCENARIO.name());
+                fieldID = flippedCompanyModel.get(CompanyLogicRoles.COMPANY__SCENARIO.name());
                 co.scenario = relatedCo.contents.get(fieldID);
 
                 companyRepo.persist(co);
@@ -214,7 +201,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
     }
 
     private void getChannel(Activity a, KMesg data, Map<String, String> flippedFieldsModel) {
-        a.channelID = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CHANNEL);
+        a.channelID = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CHANNEL);
 
         if (a.channelID != null) {
             String picklistID = data.afterBobject.contents.get(a.channelID);
@@ -233,8 +220,9 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
 
     private Date getActivityDate(KMesg data, Map<String, String> flippedFieldsModel) {
         // ACTIVITY__TIME vs ACTIVITY__CREATION_DATETIME vs. ACTIVITY__UPDATE_DATETIME
-        String date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
-        if (date == null) date = findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CREATION_DATETIME);
+        String date = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
+        if (date == null)
+            date = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CREATION_DATETIME);
         if (date == null) return null;
 
         Date dateValue = null;
@@ -250,11 +238,11 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
 
     @Transactional
     public void deleteByContact(Contact c) {
-        delete("lead",c);
+        delete("lead", c);
     }
 
     @Transactional
     public void deleteByCompany(Company c) {
-        delete("company",c);
+        delete("company", c);
     }
 }

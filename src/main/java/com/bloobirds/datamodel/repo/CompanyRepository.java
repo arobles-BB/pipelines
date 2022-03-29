@@ -3,8 +3,8 @@ package com.bloobirds.datamodel.repo;
 import com.bloobirds.datamodel.Company;
 import com.bloobirds.datamodel.SalesUser;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
-import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
+import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
 import com.bloobirds.pipelines.messages.Action;
 import com.bloobirds.pipelines.messages.KMesg;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
@@ -31,22 +31,9 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
     @Inject
     ContactRepository contactRepo;
 
-    private static Map<String, String> flipHashMap(Map<String, String> map) {
-        Map<String, String> result = new HashMap<>();
-        map.forEach((k, v) -> result.put(v, k));
-        return result;
-    }
-
-    private static String findField(KMesg data, Map<String, String> flippedFieldsModel, CompanyLogicRoles lrole) {
-        String result = "";
-        String fID = flippedFieldsModel.get(lrole.name());
-        if (fID != null) result = data.afterBobject.contents.get(fID);
-        return result;
-    }
-
     @Transactional
     public Company newCompanyFromKMsg(@Body KMesg data) {
-        Map<String, String> flippedFieldsModel = flipHashMap(data.frozenModel.company.fieldsModel);
+        Map<String, String> flippedFieldsModel = KMesg.flipHashMap(data.frozenModel.company.fieldsModel);
 
         Company c;
 
@@ -54,57 +41,57 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         id.setTenantID(data.accountId);
         id.setBBobjectID(data.afterBobject.id.objectId);
 
-        c= findById(id);
+        c = findById(id);
         if (data.action.equals(Action.DELETE)) {
-            if (c!=null) {
+            if (c != null) {
                 activityRepo.deleteByCompany(c);
                 contactRepo.removeCompany(c);
                 delete(c);
             }
             return c;
         }
-        if(c==null){
+        if (c == null) {
             c = new Company();
             c.objectID = id;
         }
 
 
-        c.name = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__NAME);
+        c.name = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__NAME);
 
         SalesUser su;
 
         BBObjectID suid = new BBObjectID();
         suid.setTenantID(data.accountId);
 
-        String assignToId = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__ASSIGNED_TO);
+        String assignToId = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__ASSIGNED_TO);
         suid.setBBobjectID(assignToId);
 
-        c.statusPicklistID = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS);
+        c.statusPicklistID = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS);
         String field = data.frozenModel.company.picklistsModel.get(c.statusPicklistID);
         c.status = setStatusFromLogicRole(field);
 
-        c.sourcePicklistID = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SOURCE);
+        c.sourcePicklistID = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SOURCE);
         c.source = setSourceFromLogicRole(c.sourcePicklistID);
 
-        field = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT);
+        field = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT);
         if (field != null) {
             try {
-                LocalDateTime d= LocalDateTime.parse(field, DateTimeFormatter.ISO_DATE_TIME);
+                LocalDateTime d = LocalDateTime.parse(field, DateTimeFormatter.ISO_DATE_TIME);
                 c.startedToProspect = java.util.Date.from(d.atZone(ZoneId.systemDefault()).toInstant());
             } catch (DateTimeParseException e) {
             }
         }
-        c.discardedReasons = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__DISCARDED_REASONS);
-        c.nurturingReasons = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__NURTURING_REASONS);
-        c.targetMarket = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__TARGET_MARKET);
-        c.country = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__COUNTRY);
-        c.industry = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__INDUSTRY);
-        c.employeeRange = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SIZE);
-        c.scenario = findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SCENARIO);
+        c.discardedReasons = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__DISCARDED_REASONS);
+        c.nurturingReasons = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__NURTURING_REASONS);
+        c.targetMarket = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__TARGET_MARKET);
+        c.country = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__COUNTRY);
+        c.industry = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__INDUSTRY);
+        c.employeeRange = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SIZE);
+        c.scenario = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SCENARIO);
 
 
-        if(c.attributes==null) c.attributes= new HashMap<>();
-        Map<String, ExtendedAttribute> attributes=c.attributes;
+        if (c.attributes == null) c.attributes = new HashMap<>();
+        Map<String, ExtendedAttribute> attributes = c.attributes;
         data.afterBobject.contents.forEach((k, v) -> addAttribute(attributes, data.frozenModel.company.fieldsModel.get(k), k, v));
 
         //        c.vertical; // ??
@@ -146,7 +133,7 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
 
     private void addAttribute(Map<String, ExtendedAttribute> attributes, String logicRole, String k, String v) {
 
-        if (v==null) return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
+        if (v == null) return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
 
         CompanyLogicRoles lrole = CompanyLogicRoles.NONE;
         if (logicRole != null && !logicRole.equals(""))
@@ -168,7 +155,7 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
                 break;
             default:
                 ExtendedAttribute attribute = attributes.get(k);
-                if(attribute==null) attribute=new ExtendedAttribute();
+                if (attribute == null) attribute = new ExtendedAttribute();
                 attribute.assign(lrole, v);
                 attributes.put(k, attribute);
                 break;

@@ -22,20 +22,13 @@ import static com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles.
 @ApplicationScoped
 public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCall, BBObjectID> {
 
-    private static String findField(KMesg data, Map<String, String> flippedFieldsModel, ActivityCallLogicRoles lrole) {
-        String result = "";
-        String fID = flippedFieldsModel.get(lrole.name());
-        if (fID != null) result = data.afterBobject.contents.get(fID);
-        return result;
-    }
-
     @Transactional
     public void newAndUpdate(ActivityCall a, KMesg data, Map<String, String> flippedFieldsModel) {
-        a.note = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__NOTE);
+        a.note = KMesg.findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__NOTE);
 
-        a.origin = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__CALL_USER_PHONE_NUMBER);
+        a.origin = KMesg.findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__CALL_USER_PHONE_NUMBER);
 
-        String duration = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__CALL_DURATION);
+        String duration = KMesg.findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__CALL_DURATION);
         if (duration != null) {
             try {
                 a.seconds = Double.parseDouble(duration);
@@ -43,7 +36,7 @@ public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCal
             }
         }
 
-        a.callResultFieldID = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__CALL_RESULT);
+        a.callResultFieldID = KMesg.findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__CALL_RESULT);
         if (a.callResultFieldID != null) {
             String callResultPicklistID = data.frozenModel.activity.picklistsModel.get(a.callResultFieldID);
             if (callResultPicklistID != null) {
@@ -59,7 +52,7 @@ public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCal
                 }
             }
         }
-        a.pitch_doneFieldID = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__PITCH_DONE);
+        a.pitch_doneFieldID = KMesg.findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__PITCH_DONE);
         if (a.pitch_doneFieldID != null) {
             String pitchDondePicklistID = data.frozenModel.activity.picklistsModel.get(a.pitch_doneFieldID);
             if (pitchDondePicklistID != null) {
@@ -70,10 +63,10 @@ public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCal
             }
         }
         if (a.pitch_done) {
-            a.pitch_used = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__PITCH);
+            a.pitch_used = KMesg.findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__PITCH);
         }
 
-        a.directionFieldID = findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__DIRECTION);
+        a.directionFieldID = KMesg.findField(data, flippedFieldsModel, ActivityCallLogicRoles.ACTIVITY__DIRECTION);
         if (a.directionFieldID != null) {
             String directionPicklistID = data.frozenModel.activity.picklistsModel.get(a.directionFieldID);
 
@@ -147,7 +140,7 @@ public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCal
                 }
             } else {
                 ExtendedAttribute attribute = attributes.get(k);
-                attribute.assign(ACTIVITY__CALL_NONE, v);
+                attribute.assign(ActivityLogicRoles.NONE, v);
                 if (attribute == null) attribute = new ExtendedAttribute();
                 attributes.put(k, attribute);
             }

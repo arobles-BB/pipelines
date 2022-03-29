@@ -29,5 +29,5 @@ public enum ActivityLogicRoles implements LogicRoles {
     ACTIVITY__UPDATE_DATETIME,
     ACTIVITY__USER,
     HUBSPOT__ENGAGEMENT_ID,
-    ACTIVITY_NONE
+    NONE
 }
