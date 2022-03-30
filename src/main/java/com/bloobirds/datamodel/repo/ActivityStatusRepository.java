@@ -1,6 +1,8 @@
 package com.bloobirds.datamodel.repo;
 
 import com.bloobirds.datamodel.ActivityStatus;
+import com.bloobirds.datamodel.Company;
+import com.bloobirds.datamodel.Contact;
 import com.bloobirds.datamodel.Opportunity;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
@@ -12,7 +14,6 @@ import lombok.extern.java.Log;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
-import java.util.Date;
 import java.util.Map;
 
 @Log
@@ -48,7 +49,6 @@ public class ActivityStatusRepository implements PanacheRepositoryBase<ActivityS
                 case "ACTIVITY__TYPE_STATUS__OPPORTUNITY_ASSIGNED" -> a.status=ActivityStatus.ACTIVITY__TYPE_STATUS__OPPORTUNITY_ASSIGNED;
                 case "ACTIVITY__TYPE_STATUS__OPPORTUNITY_STATUS_CHANGED" -> a.status=ActivityStatus.ACTIVITY__TYPE_STATUS__OPPORTUNITY_STATUS_CHANGED;
             }
-
         }
         String automated= KMesg.findField(data, flippedFieldsModel, ActivityStatusLogicRoles.ACTIVITY__DATA_SOURCE_AUTOMATED);
         a.automated=false;
@@ -126,11 +126,49 @@ public class ActivityStatusRepository implements PanacheRepositoryBase<ActivityS
     }
 
     private void chekCompany(ActivityStatus a, Map<String, String> flippedFieldsModel, KMesg data) {
-        //@todo
+        Company c=null;
+        BBObjectID id= new BBObjectID();
+        id.setTenantID(data.accountId);
+        String cID = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__COMPANY);
+        if (cID != null) {
+            id.setBBobjectID(cID);
+            c = companyRepo.findById(id);
+            if (c == null) {
+                c = new Company();
+                c.objectID = id;
+                companyRepo.persist(c);
+            }
+        }
+        a.company=c;
+        if(!c.statusPicklistID.equals(a.changedTo)){
+            c.statusPicklistID=a.changedTo;
+            String statusLogicRole= data.frozenModel.company.fieldsModel.get(a.changedTo);
+            c.status= CompanyRepository.setStatusFromLogicRole(statusLogicRole);
+            companyRepo.persist(c);
+        }
     }
 
     private void chekLead(ActivityStatus a, Map<String, String> flippedFieldsModel, KMesg data) {
-        //@todo
+        Contact co=null;
+        BBObjectID id= new BBObjectID();
+        id.setTenantID(data.accountId);
+        String coID = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__LEAD);
+        if (coID != null) {
+            id.setBBobjectID(coID);
+            co = contactRepo.findById(id);
+            if (co == null) {
+                co = new Contact();
+                co.objectID = id;
+                contactRepo.persist(co);
+            }
+        }
+        a.lead =  co;
+        if(!co.statusPicklistID.equals(a.changedTo)) {
+            co.statusPicklistID = a.changedTo;
+            String statusLogicRole= data.frozenModel.lead.fieldsModel.get(a.changedTo);
+            co.status = ContactRepository.setStatusFromLogicRole(statusLogicRole);
+            contactRepo.persist(co);
+        }
     }
 
 

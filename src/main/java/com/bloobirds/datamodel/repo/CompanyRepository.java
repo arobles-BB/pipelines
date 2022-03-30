@@ -114,7 +114,7 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         return result;
     }
 
-    private int setStatusFromLogicRole(String statusPicklist) {
+    public static int setStatusFromLogicRole(String statusPicklist) {
 
         int result = Company.COMPANY__STATUS__OTHER;
         switch (statusPicklist) {

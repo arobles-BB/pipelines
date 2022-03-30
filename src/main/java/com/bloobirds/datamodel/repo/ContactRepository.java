@@ -179,7 +179,7 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         }
     }
 
-    public int setStatusFromLogicRole(String statusPicklist) {
+    public static int setStatusFromLogicRole(String statusPicklist) {
         int result = Contact.STATUS_OTHER;
 
         switch (statusPicklist) {
