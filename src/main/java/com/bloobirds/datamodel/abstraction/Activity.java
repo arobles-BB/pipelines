@@ -10,9 +10,11 @@ import org.hibernate.annotations.Cascade;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.CascadeType;
+import org.hibernate.envers.Audited;
 
 
 import javax.persistence.*;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,7 +63,7 @@ public abstract class Activity extends PanacheEntityBase {
     public BBObjectID objectID = new BBObjectID();
 
     @Temporal(TemporalType.DATE)
-    public java.util.Date date; // ACTIVITY__TIME vs ACTIVITY__CREATION_DATETIME vs. ACTIVITY__UPDATE_DATETIME
+    public java.util.Date date; // ACTIVITY__TIME
     public String targetMarket; // from Company
     public String icp; // from Company
     public String scenario; //  from Company

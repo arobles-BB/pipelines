@@ -11,6 +11,7 @@ import org.hibernate.envers.Audited;
 
 import javax.persistence.*;
 import java.text.MessageFormat;
+import java.util.Date;
 import java.util.Map;
 
 @Entity
@@ -39,9 +40,13 @@ public class Contact {
     public int status; // LEAD__STATUS
     @Audited
     public String statusPicklistID; // status fieldID en caso de que no sea uno con Logic Role
+    @Audited
+    @Temporal(TemporalType.TIMESTAMP)
+    public Date dateStatusUpdate;
 
     @EmbeddedId
     public BBObjectID objectID;
+
 
     @ManyToOne
     @JoinColumns({

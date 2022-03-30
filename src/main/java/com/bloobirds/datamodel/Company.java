@@ -43,6 +43,11 @@ public class Company {
     public int status; //COMPANY__STATUS
     @Audited
     public String statusPicklistID; // ID en caso de que no sea uno con logic role
+    @Audited
+    @Temporal(TemporalType.TIMESTAMP)
+    public Date dateStatusUpdate;
+
+
     @Temporal(TemporalType.TIMESTAMP)
     public Date startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT
 

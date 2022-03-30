@@ -5,6 +5,7 @@ import com.bloobirds.datamodel.Opportunity;
 import com.bloobirds.datamodel.SalesUser;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
+import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.ContactLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.OpportunityLogicRoles;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -80,7 +82,10 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
             String statusPicklist = KMesg.findPicklist(data, data.frozenModel.opportunity.picklistsModel, statusPicklistID);
             o.status = setStatusFromLogicRole(statusPicklist);
         } else o.status = Opportunity.OPPORTUNITY__STATUS__NONE;
-        o.statusFieldID = statusPicklistID;
+        if (o.statusFieldID!=null && !o.statusFieldID.equals(statusPicklistID)) {
+            o.dateStatusUpdate = getUpdateDate(data,flippedFieldsModel);
+            o.statusFieldID = statusPicklistID;
+        }
 
         String creationDate = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__CREATION_DATETIME); //    OPPORTUNITY__CREATION_DATE?
         try {
@@ -172,6 +177,22 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
         return o;
 
     }
+    private Date getUpdateDate(KMesg data, Map<String, String> flippedFieldsModel) {
+        String date = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__UPDATE_DATETIME);
+        if (date == null)
+            date = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__CREATION_DATETIME);
+        if (date == null) return new Date();
+
+        Date dateValue = null;
+
+        try {
+            LocalDateTime dateToConvert = LocalDateTime.parse(date, DateTimeFormatter.ISO_DATE_TIME);
+            dateValue = java.util.Date.from(dateToConvert.atZone(ZoneId.systemDefault())
+                    .toInstant());
+        } catch (DateTimeParseException e) {
+        }
+        return dateValue;
+    }
 
     private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
         if (v == null) return; // bug panache
@@ -199,7 +220,7 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
         }
     }
 
-    private int setStatusFromLogicRole(String statusPicklist) {
+    public static int setStatusFromLogicRole(String statusPicklist) {
         int result = Opportunity.OPPORTUNITY__STATUS__NONE;
         switch (statusPicklist) {
             case "OPPORTUNITY__STATUS__CLOSED_WON" -> result = Opportunity.OPPORTUNITY__STATUS__CLOSED_WON;

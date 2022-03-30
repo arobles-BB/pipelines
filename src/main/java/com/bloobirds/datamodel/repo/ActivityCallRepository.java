@@ -1,7 +1,6 @@
 package com.bloobirds.datamodel.repo;
 
 import com.bloobirds.datamodel.ActivityCall;
-import com.bloobirds.datamodel.abstraction.Activity;
 import com.bloobirds.datamodel.abstraction.logicroles.ActivityCallLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
@@ -15,7 +14,6 @@ import javax.transaction.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.bloobirds.datamodel.abstraction.logicroles.ActivityCallLogicRoles.ACTIVITY__CALL_NONE;
 import static com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles.valueOf;
 
 @Log

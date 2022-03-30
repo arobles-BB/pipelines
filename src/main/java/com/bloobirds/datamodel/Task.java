@@ -6,6 +6,7 @@ import lombok.ToString;
 import org.hibernate.annotations.Cascade;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.envers.Audited;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -39,8 +40,13 @@ public class Task {
     public BBObjectID objectID;
 
     public String title; //    TASK__TITLE
+    @Audited
     public int status; //    TASK__STATUS
+    @Audited
     public String statusFieldID;
+    @Audited
+    @Temporal(TemporalType.TIMESTAMP)
+    public Date dateStatusUpdate;
 
     @Temporal(TemporalType.DATE)
     public Date scheduled; // TASK__SCHEDULED_DATETIME

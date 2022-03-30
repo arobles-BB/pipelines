@@ -61,6 +61,10 @@ public class Opportunity {
     public int status; //    OPPORTUNITY__STATUS
     @Audited
     public String statusFieldID;
+    @Audited
+    @Temporal(TemporalType.TIMESTAMP)
+    public Date dateStatusUpdate;
+
     public Date creationDate; //    OPPORTUNITY__CREATION_DATE, //    OPPORTUNITY__CREATION_DATETIME,
     public Date closingDate; //    OPPORTUNITY__CLOSE_DATE,
 

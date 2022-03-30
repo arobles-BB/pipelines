@@ -38,6 +38,10 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
     ActivityCallRepository callRepo;
 
     @Inject
+    ActivityStatusRepository statusRepo;
+
+
+    @Inject
     OpportunityRepository opportunityRepo;
 
     @Transactional
@@ -77,6 +81,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         }
         switch (a.getActivityType()) {
             case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndUpdate((ActivityCall) a, data, flippedFieldsModel);
+            case Activity.ACTIVITY__TYPE__STATUS -> statusRepo.newAndUpdate((ActivityStatus) a, data, flippedFieldsModel);
         }
     }
 
@@ -122,6 +127,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
 
                 switch (a.getActivityType()) {
                     case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndUpdate((ActivityCall) a, data, flippedFieldsModel);
+                    case Activity.ACTIVITY__TYPE__STATUS -> statusRepo.newAndUpdate((ActivityStatus) a,data,flippedFieldsModel);
                 }
             }
         }
@@ -240,7 +246,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         }
     }
 
-    private Date getActivityDate(KMesg data, Map<String, String> flippedFieldsModel) {
+    public static Date getActivityDate(KMesg data, Map<String, String> flippedFieldsModel) {
         // ACTIVITY__TIME vs ACTIVITY__CREATION_DATETIME vs. ACTIVITY__UPDATE_DATETIME
         String date = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
         if (date == null)
