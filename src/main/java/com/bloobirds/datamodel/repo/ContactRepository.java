@@ -106,6 +106,9 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         c.email = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__EMAIL);
         c.linkedIn = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__LINKEDIN_URL);
         c.icp = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__ICP);
+        c.discardedReasons = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__DISCARDED_REASONS);
+        c.nurturingReasons = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__NURTURING_REASONS);
+        c.cadence = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__CADENCE);
 
         SalesUser su;
 

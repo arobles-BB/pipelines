@@ -8,6 +8,7 @@ import org.hibernate.annotations.Cascade;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.RelationTargetAuditMode;
 
 import javax.persistence.*;
 import java.text.MessageFormat;
@@ -37,12 +38,18 @@ public class Contact {
     public String email; // LEAD__EMAIL
     public String icp; // LEAD__ICP
     @Audited
+    public String discardedReasons;
+    @Audited
+    public String nurturingReasons;
+    @Audited(withModifiedFlag=true)
     public int status; // LEAD__STATUS
     @Audited
     public String statusPicklistID; // status fieldID en caso de que no sea uno con Logic Role
     @Audited
     @Temporal(TemporalType.TIMESTAMP)
     public Date dateStatusUpdate;
+    @Audited
+    public String cadence;
 
     @EmbeddedId
     public BBObjectID objectID;
@@ -55,6 +62,7 @@ public class Contact {
     })
     public Company company;
 
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     @ManyToOne
     @JoinColumns({
             @JoinColumn(name = "SUtenantID", referencedColumnName = "tenantID"),

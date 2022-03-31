@@ -34,6 +34,9 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
     @Inject
     OpportunityRepository opportunityRepo;
 
+    @Inject
+    SalesUserRepository userRepo;
+
     @Transactional
     public Company newCompanyFromKMsg(@Body KMesg data) {
         Map<String, String> flippedFieldsModel = KMesg.flipHashMap(data.frozenModel.company.fieldsModel);
@@ -70,6 +73,16 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         String assignToId = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__ASSIGNED_TO);
         suid.setBBobjectID(assignToId);
 
+        su=userRepo.findById(suid);
+        if(su==null) {
+            su = new SalesUser();
+            su.objectID=suid;
+            userRepo.persist(su);
+        }
+
+        if(c.assignTo==null || !c.assignTo.objectID.getBBobjectID().equals(su.objectID.getBBobjectID()))
+            c.assignTo=su;
+
         c.statusPicklistID = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS);
         String field = data.frozenModel.company.picklistsModel.get(c.statusPicklistID);
         c.status = setStatusFromLogicRole(field);
@@ -87,6 +100,7 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         }
         c.discardedReasons = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__DISCARDED_REASONS);
         c.nurturingReasons = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__NURTURING_REASONS);
+        c.cadence = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__CADENCE);
         c.targetMarket = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__TARGET_MARKET);
         c.country = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__COUNTRY);
         c.industry = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__INDUSTRY);
@@ -156,6 +170,7 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
             case COMPANY__INDUSTRY:
             case COMPANY__SIZE:
             case COMPANY__SCENARIO:
+            case COMPANY__CADENCE:
                 break;
             default:
                 ExtendedAttribute attribute = attributes.get(k);

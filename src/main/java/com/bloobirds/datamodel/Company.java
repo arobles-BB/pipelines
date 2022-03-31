@@ -2,12 +2,12 @@ package com.bloobirds.datamodel;
 
 import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.ToString;
 import org.hibernate.annotations.Cascade;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.RelationTargetAuditMode;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -39,7 +39,7 @@ public class Company {
     public BBObjectID objectID;
 
     public String name; //COMPANY__NAME
-    @Audited
+    @Audited(withModifiedFlag=true)
     public int status; //COMPANY__STATUS
     @Audited
     public String statusPicklistID; // ID en caso de que no sea uno con logic role
@@ -51,7 +51,9 @@ public class Company {
     @Temporal(TemporalType.TIMESTAMP)
     public Date startedToProspect; //COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT
 
+    @Audited
     public String discardedReasons; // COMPANY__DISCARDED_REASONS
+    @Audited
     public String nurturingReasons; // COMPANY__NURTURING_REASONS
     public int source; // COMPANY__SOURCE
     public String sourcePicklistID;
@@ -61,13 +63,16 @@ public class Company {
     public String employeeRange; // COMPANY__SIZE
     public String scenario; // COMPANY__SCENARIO
 
+    @Audited
+    public String cadence;
 
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     @ManyToOne
     @JoinColumns({
             @JoinColumn(name = "SUtenantID", referencedColumnName = "tenantID"),
             @JoinColumn(name = "SUobjectID", referencedColumnName = "BBobjectID")
     })
-    public SalesUser assignTo; // COMPANY__ASSIGNED_TO
+    public SalesUser assignTo;
 
     @ElementCollection(fetch = FetchType.EAGER) // Problemas con Jackson, Quarkus, Envers...
     @CollectionTable(
