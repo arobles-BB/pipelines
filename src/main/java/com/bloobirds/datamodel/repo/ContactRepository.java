@@ -17,6 +17,11 @@ import org.apache.camel.Body;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,6 +39,24 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
     ActivityRepository activityRepo;
 
     //@todo no hay protección a nulls!
+
+    public static int setStatusFromLogicRole(String statusPicklist) {
+        int result = Contact.STATUS_OTHER;
+
+        switch (statusPicklist) {
+            case "LEAD__STATUS__NEW" -> result = Contact.STATUS_NEW;
+            case "LEAD__STATUS__DELIVERED" -> result = Contact.STATUS_DELIVERED;
+            case "LEAD__STATUS__ON_PROSPECTION" -> result = Contact.STATUS_ON_PROSPECTION;
+            case "LEAD__STATUS__CONTACTED" -> result = Contact.STATUS_CONTACTED;
+            case "LEAD__STATUS__ENGAGED" -> result = Contact.STATUS_ENGAGED;
+            case "LEAD__STATUS__MEETING" -> result = Contact.STATUS_MEETING;
+            case "LEAD__STATUS__NURTURING" -> result = Contact.STATUS_NURTURING;
+            case "LEAD__STATUS__DISCARDED" -> result = Contact.STATUS_DISCARDED;
+            case "LEAD__STATUS__CONTACT" -> result = Contact.STATUS_CONTACT;
+            case "LEAD__STATUS__BACKLOG" -> result = Contact.STATUS_BACKLOG;
+        }
+        return result;
+    }
 
     @Transactional
     public Contact createContactFromKMesg(@Body KMesg data) {
@@ -60,7 +83,7 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
 
         Company co;
         String[] parts = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__COMPANY).split("/");
-        if (parts.length ==3) {
+        if (parts.length == 3) {
             BBObjectID coid = new BBObjectID();
             coid.setTenantID(data.accountId);
             coid.setBBobjectID(parts[parts.length - 1]);
@@ -140,11 +163,22 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         }
 
         String statusPicklistID = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__STATUS);
+
         if (statusPicklistID != null) {
-            String statusPicklist = KMesg.findPicklist(data, data.frozenModel.lead.picklistsModel, statusPicklistID);
-            c.status = setStatusFromLogicRole(statusPicklist);
+            String status = KMesg.findPicklist(data, data.frozenModel.lead.picklistsModel, statusPicklistID);
+
+            int newStatus=setStatusFromLogicRole(status);
+
+            if (newStatus!=c.status) {
+                c.prevStatus=c.status;
+                c.status=newStatus;
+            }
         } else c.status = Contact.STATUS_OTHER;
-        c.statusPicklistID = statusPicklistID;
+
+        if (statusPicklistID != null && !statusPicklistID.equals(c.statusFieldID)) {
+            c.dateStatusUpdate = getUpdateDate(data, flippedFieldsModel);
+            c.statusFieldID = statusPicklistID;
+        }
 
 
         if (c.attributes == null) c.attributes = new HashMap<>();
@@ -155,49 +189,58 @@ public class ContactRepository implements PanacheRepositoryBase<Contact, BBObjec
         return c;
     }
 
-    private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
+    private Date getUpdateDate(KMesg data, Map<String, String> flippedFieldsModel) {
+        String date = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__UPDATE_DATETIME);
+        if (date == null)
+            date = KMesg.findField(data, flippedFieldsModel, ContactLogicRoles.LEAD__CREATION_DATETIME);
+        if (date == null) return new Date();
 
-        if (v == null) return; // bug panache
+        Date dateValue = null;
+
+        try {
+            LocalDateTime dateToConvert = LocalDateTime.parse(date, DateTimeFormatter.ISO_DATE_TIME);
+            dateValue = java.util.Date.from(dateToConvert.atZone(ZoneId.systemDefault())
+                    .toInstant());
+        } catch (DateTimeParseException e) {
+        }
+        return dateValue;
+    }
+
+    private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
+        if (v == null) {
+            attributes.remove(k);
+            return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
+        }
+
+        ExtendedAttribute result = null;
 
         String logicRole = data.frozenModel.lead.fieldsModel.get(k);
-        ContactLogicRoles lrole = ContactLogicRoles.NONE;
-        if (logicRole != null && !logicRole.equals(""))
-            lrole = ContactLogicRoles.valueOf(logicRole);
+        ContactLogicRoles lrole;
 
-        switch (lrole) {
-            case LEAD__NAME:
-            case LEAD__SURNAME:
-            case LEAD__LINKEDIN_JOB_TITLE:
-            case LEAD__PHONE:
-            case LEAD__EMAIL:
-            case LEAD__LINKEDIN_URL:
-            case LEAD__ASSIGNED_TO:
-            case LEAD__STATUS:
+        switch (logicRole) {
+            case "LEAD__NAME":
+            case "LEAD__SURNAME":
+            case "LEAD__LINKEDIN_JOB_TITLE":
+            case "LEAD__PHONE":
+            case "LEAD__EMAIL":
+            case "LEAD__LINKEDIN_URL":
+            case "LEAD__ASSIGNED_TO":
+            case "LEAD__STATUS":
                 break;
             default:
                 ExtendedAttribute attribute = new ExtendedAttribute();
-                attribute.assign(lrole, v);
-                attributes.put(k, attribute);
+                if (logicRole != null && !logicRole.equals("")) {
+                    try {
+                        lrole = ContactLogicRoles.valueOf(logicRole);
+                        attribute.assign(lrole, v);
+                        attributes.put(k, attribute);
+                        result = attribute;
+                    } catch (Exception e) {
+                    }
+                }
                 break;
         }
-    }
 
-    public static int setStatusFromLogicRole(String statusPicklist) {
-        int result = Contact.STATUS_OTHER;
-
-        switch (statusPicklist) {
-            case "LEAD__STATUS__NEW" -> result = Contact.STATUS_NEW;
-            case "LEAD__STATUS__DELIVERED" -> result = Contact.STATUS_DELIVERED;
-            case "LEAD__STATUS__ON_PROSPECTION" -> result = Contact.STATUS_ON_PROSPECTION;
-            case "LEAD__STATUS__CONTACTED" -> result = Contact.STATUS_CONTACTED;
-            case "LEAD__STATUS__ENGAGED" -> result = Contact.STATUS_ENGAGED;
-            case "LEAD__STATUS__MEETING" -> result = Contact.STATUS_MEETING;
-            case "LEAD__STATUS__NURTURING" -> result = Contact.STATUS_NURTURING;
-            case "LEAD__STATUS__DISCARDED" -> result = Contact.STATUS_DISCARDED;
-            case "LEAD__STATUS__CONTACT" -> result = Contact.STATUS_CONTACT;
-            case "LEAD__STATUS__BACKLOG" -> result = Contact.STATUS_BACKLOG;
-        }
-        return result;
     }
 
     @Transactional

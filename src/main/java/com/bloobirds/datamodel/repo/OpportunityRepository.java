@@ -5,9 +5,7 @@ import com.bloobirds.datamodel.Opportunity;
 import com.bloobirds.datamodel.SalesUser;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
-import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
-import com.bloobirds.datamodel.abstraction.logicroles.ContactLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.OpportunityLogicRoles;
 import com.bloobirds.pipelines.messages.Action;
 import com.bloobirds.pipelines.messages.KMesg;
@@ -39,6 +37,24 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
     @Inject
     ContactRepository contactRepo;
 
+    public static int setStatusFromLogicRole(String statusPicklist) {
+        int result = Opportunity.OPPORTUNITY__STATUS__NONE;
+        switch (statusPicklist) {
+            case "OPPORTUNITY__STATUS__CLOSED_WON" -> result = Opportunity.OPPORTUNITY__STATUS__CLOSED_WON;
+            case "OPPORTUNITY__STATUS__CLOSED_LOST" -> result = Opportunity.OPPORTUNITY__STATUS__CLOSED_LOST;
+            case "OPPORTUNITY__STATUS__FIRST_MEETING_SCHEDULED" -> result = Opportunity.OPPORTUNITY__STATUS__FIRST_MEETING_SCHEDULED;
+            case "OPPORTUNITY__STATUS__VERBAL_OK" -> result = Opportunity.OPPORTUNITY__STATUS__VERBAL_OK;
+            case "OPPORTUNITY__STATUS__FIRST_MEETING_DONE" -> result = Opportunity.OPPORTUNITY__STATUS__FIRST_MEETING_DONE;
+            case "OPPORTUNITY__STATUS__PROPOSAL_EXPLAINED" -> result = Opportunity.OPPORTUNITY__STATUS__PROPOSAL_EXPLAINED;
+            case "OPPORTUNITY__STATUS__THIRD_MEETING_DONE" -> result = Opportunity.OPPORTUNITY__STATUS__THIRD_MEETING_DONE;
+            case "OPPORTUNITY__STATUS__SECOND_MEETING_DONE" -> result = Opportunity.OPPORTUNITY__STATUS__SECOND_MEETING_DONE;
+            case "OPPORTUNITY__STATUS__PROPOSAL_SENT" -> result = Opportunity.OPPORTUNITY__STATUS__PROPOSAL_SENT;
+            case "OPPORTUNITY__STATUS__ON_HOLD_NURTURING" -> result = Opportunity.OPPORTUNITY__STATUS__ON_HOLD_NURTURING;
+        }
+
+        return result;
+    }
+
     @Transactional
     public Opportunity createOpportunityFromKMesg(@Body KMesg data) {
         Opportunity o;
@@ -67,7 +83,8 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
         String amount = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__AMOUNT);
         try {
             o.amount = Double.parseDouble(amount);
-        } catch (NumberFormatException e) {  }
+        } catch (NumberFormatException e) {
+        }
 
         String typePicklistID = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__TYPE);
         if (typePicklistID != null) {
@@ -79,11 +96,17 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
 
         String statusPicklistID = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__STATUS);
         if (statusPicklistID != null) {
-            String statusPicklist = KMesg.findPicklist(data, data.frozenModel.opportunity.picklistsModel, statusPicklistID);
-            o.status = setStatusFromLogicRole(statusPicklist);
+            String status = KMesg.findPicklist(data, data.frozenModel.opportunity.picklistsModel, statusPicklistID);
+            int newStatus=setStatusFromLogicRole(status);
+            if (newStatus!=o.status) {
+                o.prevStatus=o.status;
+                o.status=newStatus;
+            }
         } else o.status = Opportunity.OPPORTUNITY__STATUS__NONE;
-        if (o.statusFieldID!=null && !o.statusFieldID.equals(statusPicklistID)) {
-            o.dateStatusUpdate = getUpdateDate(data,flippedFieldsModel);
+
+
+        if (o.statusFieldID != null && !o.statusFieldID.equals(statusPicklistID)) {
+            o.dateStatusUpdate = getUpdateDate(data, flippedFieldsModel);
             o.statusFieldID = statusPicklistID;
         }
 
@@ -92,14 +115,16 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
             LocalDateTime dateToConvert = LocalDateTime.parse(creationDate, DateTimeFormatter.ISO_DATE_TIME);
             o.creationDate = java.util.Date.from(dateToConvert.atZone(ZoneId.systemDefault())
                     .toInstant());
-        } catch (DateTimeParseException e) { }
+        } catch (DateTimeParseException e) {
+        }
 
         String closingDate = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__CLOSE_DATE); //    OPPORTUNITY__CLOSE_DATE,
         try {
             LocalDateTime dateToConvert = LocalDateTime.parse(closingDate, DateTimeFormatter.ISO_DATE_TIME);
             o.closingDate = java.util.Date.from(dateToConvert.atZone(ZoneId.systemDefault())
                     .toInstant());
-        } catch (DateTimeParseException e) { }
+        } catch (DateTimeParseException e) {
+        }
 
 
         Company co;
@@ -177,6 +202,7 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
         return o;
 
     }
+
     private Date getUpdateDate(KMesg data, Map<String, String> flippedFieldsModel) {
         String date = KMesg.findField(data, flippedFieldsModel, OpportunityLogicRoles.OPPORTUNITY__UPDATE_DATETIME);
         if (date == null)
@@ -195,47 +221,39 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
     }
 
     private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
-        if (v == null) return; // bug panache
+        if (v == null) {
+            attributes.remove(k);
+            return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
+        }
+
+        ExtendedAttribute result = null;
 
         String logicRole = data.frozenModel.opportunity.fieldsModel.get(k);
-        OpportunityLogicRoles lrole = OpportunityLogicRoles.NONE;
-        if (logicRole != null && !logicRole.equals(""))
-            lrole = OpportunityLogicRoles.valueOf(logicRole);
+        OpportunityLogicRoles lrole;
 
-        switch (lrole) {
-            case OPPORTUNITY__AMOUNT:
-            case OPPORTUNITY__ASSIGNED_TO:
-            case OPPORTUNITY__CLOSE_DATE:
-            case OPPORTUNITY__COMPANY:
-            case OPPORTUNITY__CREATION_DATETIME:
-            case OPPORTUNITY__NAME:
-            case OPPORTUNITY__STATUS:
-            case OPPORTUNITY__TYPE:
+        switch (logicRole) {
+            case "OPPORTUNITY__AMOUNT":
+            case "OPPORTUNITY__ASSIGNED_TO":
+            case "OPPORTUNITY__CLOSE_DATE":
+            case "OPPORTUNITY__COMPANY":
+            case "OPPORTUNITY__CREATION_DATETIME":
+            case "OPPORTUNITY__NAME":
+            case "OPPORTUNITY__STATUS":
+            case "OPPORTUNITY__TYPE":
                 break;
             default:
                 ExtendedAttribute attribute = new ExtendedAttribute();
-                attribute.assign(lrole, v);
-                attributes.put(k, attribute);
+                if (logicRole != null && !logicRole.equals("")) {
+                    try {
+                        lrole = OpportunityLogicRoles.valueOf(logicRole);
+                        attribute.assign(lrole, v);
+                        attributes.put(k, attribute);
+                        result = attribute;
+                    } catch (Exception e) {
+                    }
+                }
                 break;
         }
-    }
-
-    public static int setStatusFromLogicRole(String statusPicklist) {
-        int result = Opportunity.OPPORTUNITY__STATUS__NONE;
-        switch (statusPicklist) {
-            case "OPPORTUNITY__STATUS__CLOSED_WON" -> result = Opportunity.OPPORTUNITY__STATUS__CLOSED_WON;
-            case "OPPORTUNITY__STATUS__CLOSED_LOST" -> result = Opportunity.OPPORTUNITY__STATUS__CLOSED_LOST;
-            case "OPPORTUNITY__STATUS__FIRST_MEETING_SCHEDULED" -> result = Opportunity.OPPORTUNITY__STATUS__FIRST_MEETING_SCHEDULED;
-            case "OPPORTUNITY__STATUS__VERBAL_OK" -> result = Opportunity.OPPORTUNITY__STATUS__VERBAL_OK;
-            case "OPPORTUNITY__STATUS__FIRST_MEETING_DONE" -> result = Opportunity.OPPORTUNITY__STATUS__FIRST_MEETING_DONE;
-            case "OPPORTUNITY__STATUS__PROPOSAL_EXPLAINED" -> result = Opportunity.OPPORTUNITY__STATUS__PROPOSAL_EXPLAINED;
-            case "OPPORTUNITY__STATUS__THIRD_MEETING_DONE" -> result = Opportunity.OPPORTUNITY__STATUS__THIRD_MEETING_DONE;
-            case "OPPORTUNITY__STATUS__SECOND_MEETING_DONE" -> result = Opportunity.OPPORTUNITY__STATUS__SECOND_MEETING_DONE;
-            case "OPPORTUNITY__STATUS__PROPOSAL_SENT" -> result = Opportunity.OPPORTUNITY__STATUS__PROPOSAL_SENT;
-            case "OPPORTUNITY__STATUS__ON_HOLD_NURTURING" -> result = Opportunity.OPPORTUNITY__STATUS__ON_HOLD_NURTURING;
-        }
-
-        return result;
     }
 
     private int setTypeFromLogicRole(String typePicklistID) {
@@ -249,8 +267,9 @@ public class OpportunityRepository implements PanacheRepositoryBase<Opportunity,
         return result;
     }
 
+    @Transactional
     public void deleteByCompany(Company c) {
-        delete("company",c);
+        delete("company", c);
     }
 }
 

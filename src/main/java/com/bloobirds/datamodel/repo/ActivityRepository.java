@@ -3,6 +3,7 @@ package com.bloobirds.datamodel.repo;
 import com.bloobirds.datamodel.*;
 import com.bloobirds.datamodel.abstraction.Activity;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
+import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
 import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
 import com.bloobirds.datamodel.abstraction.logicroles.CompanyLogicRoles;
 import com.bloobirds.pipelines.messages.Action;
@@ -43,6 +44,24 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
 
     @Inject
     OpportunityRepository opportunityRepo;
+
+    public static Date getActivityDate(KMesg data, Map<String, String> flippedFieldsModel) {
+        // ACTIVITY__TIME vs ACTIVITY__CREATION_DATETIME vs. ACTIVITY__UPDATE_DATETIME
+        String date = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
+        if (date == null)
+            date = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CREATION_DATETIME);
+        if (date == null) return null;
+
+        Date dateValue = null;
+
+        try {
+            LocalDateTime dateToConvert = LocalDateTime.parse(date, DateTimeFormatter.ISO_DATE_TIME);
+            dateValue = java.util.Date.from(dateToConvert.atZone(ZoneId.systemDefault())
+                    .toInstant());
+        } catch (DateTimeParseException e) {
+        }
+        return dateValue;
+    }
 
     @Transactional
     public Activity newActivityFromKMsg(@Body KMesg data) {
@@ -127,7 +146,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
 
                 switch (a.getActivityType()) {
                     case Activity.ACTIVITY__TYPE__CALL -> callRepo.newAndUpdate((ActivityCall) a, data, flippedFieldsModel);
-                    case Activity.ACTIVITY__TYPE__STATUS -> statusRepo.newAndUpdate((ActivityStatus) a,data,flippedFieldsModel);
+                    case Activity.ACTIVITY__TYPE__STATUS -> statusRepo.newAndUpdate((ActivityStatus) a, data, flippedFieldsModel);
                 }
             }
         }
@@ -135,16 +154,16 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
     }
 
     private Opportunity getOpportunity(KMesg data, Map<String, String> flippedFieldsModel) {
-        Opportunity o=null;
+        Opportunity o = null;
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
         String oID = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__OPPORTUNITY);
         if (oID != null) {
             id.setBBobjectID(oID);
             o = opportunityRepo.findById(id);
-            if(o==null){
+            if (o == null) {
                 o = new Opportunity();
-                o.objectID= id;
+                o.objectID = id;
                 opportunityRepo.persist(o);
             }
         }
@@ -174,7 +193,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
         String[] parts = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__LEAD).split("/");
-        if (parts.length ==3) {
+        if (parts.length == 3) {
             String coFieldID = parts[parts.length - 1];
             id.setBBobjectID(coFieldID);
             co = contactRepo.findById(id);
@@ -192,7 +211,7 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         BBObjectID id = new BBObjectID();
         id.setTenantID(data.accountId);
         String[] parts = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__COMPANY).split("/");
-        if (parts.length ==3) {
+        if (parts.length == 3) {
             String coFieldID = parts[parts.length - 1];
             id.setBBobjectID(coFieldID);
             co = companyRepo.findById(id);
@@ -246,24 +265,6 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
         }
     }
 
-    public static Date getActivityDate(KMesg data, Map<String, String> flippedFieldsModel) {
-        // ACTIVITY__TIME vs ACTIVITY__CREATION_DATETIME vs. ACTIVITY__UPDATE_DATETIME
-        String date = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__TIME);
-        if (date == null)
-            date = KMesg.findField(data, flippedFieldsModel, ActivityLogicRoles.ACTIVITY__CREATION_DATETIME);
-        if (date == null) return null;
-
-        Date dateValue = null;
-
-        try {
-            LocalDateTime dateToConvert = LocalDateTime.parse(date, DateTimeFormatter.ISO_DATE_TIME);
-            dateValue = java.util.Date.from(dateToConvert.atZone(ZoneId.systemDefault())
-                    .toInstant());
-        } catch (DateTimeParseException e) {
-        }
-        return dateValue;
-    }
-
     @Transactional
     public void deleteByContact(Contact c) {
         delete("lead", c);
@@ -272,5 +273,43 @@ public class ActivityRepository implements PanacheRepositoryBase<Activity, BBObj
     @Transactional
     public void deleteByCompany(Company c) {
         delete("company", c);
+    }
+
+    public static ExtendedAttribute addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
+        if (v == null)  // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
+            return attributes.remove(k);
+
+        ExtendedAttribute result = null;
+
+        String logicRole = data.frozenModel.activity.fieldsModel.get(k);
+        ActivityLogicRoles lrole;
+
+        switch (logicRole) {
+            case "ACTIVITY__LEAD_EMAIL":
+            case "ACTIVITY__OPPORTUNITY":
+            case "ACTIVITY__CHANNEL":
+            case "ACTIVITY__COMPANY":
+            case "ACTIVITY__CREATION_DATETIME":
+            case "ACTIVITY__LEAD":
+            case "ACTIVITY__TIME":
+            case "ACTIVITY__USER":
+            case "ACTIVITY__TYPE":
+            case "ACTIVITY__UPDATE_DATETIME":
+                return new ExtendedAttribute();
+            default:
+
+                if (logicRole != null && !logicRole.equals("")) {
+                    try {
+                        ExtendedAttribute attribute = new ExtendedAttribute();
+                        lrole = ActivityLogicRoles.valueOf(logicRole);
+                        attribute.assign(lrole, v);
+                        attributes.put(k, attribute);
+                        result = attribute;
+                    } catch (Exception e) {
+                    }
+                }
+                break;
+        }
+        return result;
     }
 }

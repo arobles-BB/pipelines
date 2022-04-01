@@ -4,6 +4,7 @@ import com.bloobirds.datamodel.abstraction.LogicRoles;
 
 public enum ActivityLogicRoles implements LogicRoles {
 
+    // GENERIC
     NONE,
     ACTIVITY__OPPORTUNITY,
     ACTIVITY__CHANNEL,
@@ -17,6 +18,7 @@ public enum ActivityLogicRoles implements LogicRoles {
     ACTIVITY__USER,
 
 
+    // OTHER
 
     ACTIVITY__ACCOUNT_EXECUTIVE,
     ACTIVITY__CADENCE,

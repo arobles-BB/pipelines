@@ -1,10 +1,9 @@
 package com.bloobirds.datamodel.repo;
 
 import com.bloobirds.datamodel.ActivityCall;
-import com.bloobirds.datamodel.abstraction.logicroles.ActivityCallLogicRoles;
-import com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles;
 import com.bloobirds.datamodel.abstraction.BBObjectID;
 import com.bloobirds.datamodel.abstraction.ExtendedAttribute;
+import com.bloobirds.datamodel.abstraction.logicroles.ActivityCallLogicRoles;
 import com.bloobirds.pipelines.messages.KMesg;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import lombok.extern.java.Log;
@@ -13,8 +12,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.transaction.Transactional;
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.bloobirds.datamodel.abstraction.logicroles.ActivityLogicRoles.valueOf;
 
 @Log
 @ApplicationScoped
@@ -79,69 +76,43 @@ public class ActivityCallRepository implements PanacheRepositoryBase<ActivityCal
             }
         }
 
-        if(a.attributes==null) a.attributes = new HashMap<>();
-        data.afterBobject.contents.forEach((k, v) -> addAttribute(a.attributes, data.frozenModel.activity.fieldsModel.get(k), k, v));
+        if (a.attributes == null) a.attributes = new HashMap<>();
+        data.afterBobject.contents.forEach((k, v) -> addAttribute(a.attributes, data, k, v));
         persist(a);
     }
 
-    private void addAttribute(Map<String, ExtendedAttribute> attributes, String logicRole, String k, String v) {
-
-        if (v == null) return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
-
-        if (logicRole != null && !logicRole.equals("")) {
-
-            ActivityLogicRoles lrole = null;
-            ActivityCallLogicRoles clrole = null;
-
-            try {
-                lrole = valueOf(logicRole);
-            } catch (IllegalArgumentException w) {
-                clrole = ActivityCallLogicRoles.valueOf(logicRole);
-            }
-
-            if (lrole != null) {
-                switch (lrole) {
-                    case ACTIVITY__CHANNEL:
-                    case ACTIVITY__COMPANY:
-                    case ACTIVITY__CREATION_DATETIME:
-                    case ACTIVITY__LEAD:
-                    case ACTIVITY__TIME:
-                    case ACTIVITY__TYPE:
-                    case ACTIVITY__UPDATE_DATETIME:
-                    case ACTIVITY__USER:
-                        break;
-                    default: {
-                        ExtendedAttribute attribute = attributes.get(k);
-                        if (attribute == null) attribute = new ExtendedAttribute();
-                        attribute.assign(lrole, v);
-                        attributes.put(k, attribute);
-                        break;
-                    }
-                }
-            } else if (clrole != null) {
-                switch (clrole) {
-                    case ACTIVITY__CALL_USER_PHONE_NUMBER:
-                    case ACTIVITY__CALL_DURATION:
-                    case ACTIVITY__CALL_RESULT:
-                    case ACTIVITY__PITCH_DONE:
-                    case ACTIVITY__PITCH:
-                    case ACTIVITY__DIRECTION:
-                    case ACTIVITY__NOTE:
-                        break;
-                    default: {
-                        ExtendedAttribute attribute = attributes.get(k);
-                        if (attribute == null) attribute = new ExtendedAttribute();
-                        attribute.assign(clrole, v);
-                        attributes.put(k, attribute);
-                        break;
-                    }
-                }
-            } else {
-                ExtendedAttribute attribute = attributes.get(k);
-                attribute.assign(ActivityLogicRoles.NONE, v);
-                if (attribute == null) attribute = new ExtendedAttribute();
-                attributes.put(k, attribute);
-            }
+    private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
+        if (ActivityRepository.addAttribute(attributes, data, k, v) != null) return;
+        if (v == null) {
+            attributes.remove(k);
+            return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
         }
+        String logicRole = data.frozenModel.activity.fieldsModel.get(k);
+
+        ActivityCallLogicRoles lrole;
+
+        switch (logicRole) {
+            case "ACTIVITY__CALL_USER_PHONE_NUMBER":
+            case "ACTIVITY__CALL_DURATION":
+            case "ACTIVITY__CALL_RESULT":
+            case "ACTIVITY__PITCH_DONE":
+            case "ACTIVITY__PITCH":
+            case "ACTIVITY__DIRECTION":
+            case "ACTIVITY__NOTE":
+                break;
+            default:
+                ExtendedAttribute attribute = new ExtendedAttribute();
+                if (logicRole != null && !logicRole.equals("")) {
+                    try {
+                        lrole = ActivityCallLogicRoles.valueOf(logicRole);
+                        attribute.assign(lrole, v);
+                    } catch (Exception e) {
+                        log.info("Invalid Data in Logic Role:" + e.getMessage());
+                    }
+                }
+                attributes.put(k, attribute);
+                break;
+        }
+
     }
 }

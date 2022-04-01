@@ -42,7 +42,9 @@ public class Company {
     @Audited(withModifiedFlag=true)
     public int status; //COMPANY__STATUS
     @Audited
-    public String statusPicklistID; // ID en caso de que no sea uno con logic role
+    public int prevStatus;
+    @Audited
+    public String statusFieldID; // ID en caso de que no sea uno con logic role
     @Audited
     @Temporal(TemporalType.TIMESTAMP)
     public Date dateStatusUpdate;

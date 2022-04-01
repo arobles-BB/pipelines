@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,7 +36,31 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
     OpportunityRepository opportunityRepo;
 
     @Inject
+    TaskRepository taskRepo;
+
+    @Inject
     SalesUserRepository userRepo;
+
+    public static int setStatusFromLogicRole(String statusPicklist) {
+
+        int result = Company.COMPANY__STATUS__OTHER;
+        switch (statusPicklist) {
+            case "COMPANY__STATUS__NEW" -> result = Company.COMPANY__STATUS__NEW;
+            case "COMPANY__STATUS__DELIVERED" -> result = Company.COMPANY__STATUS__DELIVERED;
+            case "COMPANY__STATUS__CONTACTED" -> result = Company.COMPANY__STATUS__CONTACTED;
+            case "COMPANY__STATUS__ENGAGED" -> result = Company.COMPANY__STATUS__ENGAGED;
+            case "COMPANY__STATUS__MEETING" -> result = Company.COMPANY__STATUS__MEETING;
+            case "COMPANY__STATUS__CLIENT" -> result = Company.COMPANY__STATUS__CLIENT;
+            case "COMPANY__STATUS__NURTURING" -> result = Company.COMPANY__STATUS__NURTURING;
+            case "COMPANY__STATUS__DISCARDED" -> result = Company.COMPANY__STATUS__DISCARDED;
+            case "COMPANY__STATUS__ACCOUNT" -> result = Company.COMPANY__STATUS__ACCOUNT;
+            case "COMPANY__STATUS__BACKLOG" -> result = Company.COMPANY__STATUS__BACKLOG;
+            case "COMPANY__STATUS__ON_PROSPECTION" -> result = Company.COMPANY__STATUS__ON_PROSPECTION;
+            case "COMPANY__STATUS__READY_TO_PROSPECT" -> result = Company.COMPANY__STATUS__READY_TO_PROSPECT;
+            case "COMPANY__STATUS__FINDING_LEADS" -> result = Company.COMPANY__STATUS__FINDING_LEADS;
+        }
+        return result;
+    }
 
     @Transactional
     public Company newCompanyFromKMsg(@Body KMesg data) {
@@ -50,6 +75,7 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         c = findById(id);
         if (data.action.equals(Action.DELETE)) {
             if (c != null) {
+                taskRepo.deleteByCompany(c);
                 opportunityRepo.deleteByCompany(c);
                 activityRepo.deleteByCompany(c);
                 contactRepo.removeCompany(c);
@@ -73,24 +99,38 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         String assignToId = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__ASSIGNED_TO);
         suid.setBBobjectID(assignToId);
 
-        su=userRepo.findById(suid);
-        if(su==null) {
+        su = userRepo.findById(suid);
+        if (su == null) {
             su = new SalesUser();
-            su.objectID=suid;
+            su.objectID = suid;
             userRepo.persist(su);
         }
 
-        if(c.assignTo==null || !c.assignTo.objectID.getBBobjectID().equals(su.objectID.getBBobjectID()))
-            c.assignTo=su;
+        if (c.assignTo == null || !c.assignTo.objectID.getBBobjectID().equals(su.objectID.getBBobjectID()))
+            c.assignTo = su;
 
-        c.statusPicklistID = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS);
-        String field = data.frozenModel.company.picklistsModel.get(c.statusPicklistID);
-        c.status = setStatusFromLogicRole(field);
+        String statusPicklistID = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS);
+
+        if (statusPicklistID != null) {
+            String status = data.frozenModel.company.picklistsModel.get(statusPicklistID);
+
+
+            int newStatus = setStatusFromLogicRole(status);
+            if (newStatus != c.status) {
+                c.prevStatus = c.status;
+                c.status = newStatus;
+            }
+        } else c.status = Company.COMPANY__STATUS__OTHER;
+
+        if (statusPicklistID != null && !statusPicklistID.equals(c.statusFieldID)) {
+            c.dateStatusUpdate = getUpdateDate(data, flippedFieldsModel);
+            c.statusFieldID = statusPicklistID;
+        }
 
         c.sourcePicklistID = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__SOURCE);
         c.source = setSourceFromLogicRole(c.sourcePicklistID);
 
-        field = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT);
+        String field = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT);
         if (field != null) {
             try {
                 LocalDateTime d = LocalDateTime.parse(field, DateTimeFormatter.ISO_DATE_TIME);
@@ -110,13 +150,30 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
 
         if (c.attributes == null) c.attributes = new HashMap<>();
         Map<String, ExtendedAttribute> attributes = c.attributes;
-        data.afterBobject.contents.forEach((k, v) -> addAttribute(attributes, data.frozenModel.company.fieldsModel.get(k), k, v));
+        data.afterBobject.contents.forEach((k, v) -> addAttribute(attributes, data, k, v));
 
         //        c.vertical; // ??
 
 
         persist(c);
         return c;
+    }
+
+    private Date getUpdateDate(KMesg data, Map<String, String> flippedFieldsModel) {
+        String date = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__UPDATE_DATETIME);
+        if (date == null)
+            date = KMesg.findField(data, flippedFieldsModel, CompanyLogicRoles.COMPANY__CREATION_DATETIME);
+        if (date == null) return new Date();
+
+        Date dateValue = null;
+
+        try {
+            LocalDateTime dateToConvert = LocalDateTime.parse(date, DateTimeFormatter.ISO_DATE_TIME);
+            dateValue = java.util.Date.from(dateToConvert.atZone(ZoneId.systemDefault())
+                    .toInstant());
+        } catch (DateTimeParseException e) {
+        }
+        return dateValue;
     }
 
     private int setSourceFromLogicRole(String sourcePicklistID) {
@@ -128,58 +185,45 @@ public class CompanyRepository implements PanacheRepositoryBase<Company, BBObjec
         return result;
     }
 
-    public static int setStatusFromLogicRole(String statusPicklist) {
-
-        int result = Company.COMPANY__STATUS__OTHER;
-        switch (statusPicklist) {
-            case "COMPANY__STATUS__NEW" -> result = Company.COMPANY__STATUS__NEW;
-            case "COMPANY__STATUS__DELIVERED" -> result = Company.COMPANY__STATUS__DELIVERED;
-            case "COMPANY__STATUS__CONTACTED" -> result = Company.COMPANY__STATUS__CONTACTED;
-            case "COMPANY__STATUS__ENGAGED" -> result = Company.COMPANY__STATUS__ENGAGED;
-            case "COMPANY__STATUS__MEETING" -> result = Company.COMPANY__STATUS__MEETING;
-            case "COMPANY__STATUS__CLIENT" -> result = Company.COMPANY__STATUS__CLIENT;
-            case "COMPANY__STATUS__NURTURING" -> result = Company.COMPANY__STATUS__NURTURING;
-            case "COMPANY__STATUS__DISCARDED" -> result = Company.COMPANY__STATUS__DISCARDED;
-            case "COMPANY__STATUS__ACCOUNT" -> result = Company.COMPANY__STATUS__ACCOUNT;
-            case "COMPANY__STATUS__BACKLOG" -> result = Company.COMPANY__STATUS__BACKLOG;
-            case "COMPANY__STATUS__ON_PROSPECTION" -> result = Company.COMPANY__STATUS__ON_PROSPECTION;
-            case "COMPANY__STATUS__READY_TO_PROSPECT" -> result = Company.COMPANY__STATUS__READY_TO_PROSPECT;
-            case "COMPANY__STATUS__FINDING_LEADS" -> result = Company.COMPANY__STATUS__FINDING_LEADS;
+    private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
+        if (v == null) {
+            attributes.remove(k);
+            return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
         }
-        return result;
-    }
 
-    private void addAttribute(Map<String, ExtendedAttribute> attributes, String logicRole, String k, String v) {
+        ExtendedAttribute result = null;
 
-        if (v == null) return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
+        String logicRole = data.frozenModel.company.fieldsModel.get(k);
+        CompanyLogicRoles lrole;
 
-        CompanyLogicRoles lrole = CompanyLogicRoles.NONE;
-        if (logicRole != null && !logicRole.equals(""))
-            lrole = CompanyLogicRoles.valueOf(logicRole);
-
-        switch (lrole) {
-            case COMPANY__NAME:
-            case COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT:
-            case COMPANY__DISCARDED_REASONS:
-            case COMPANY__NURTURING_REASONS:
-            case COMPANY__SOURCE:
-            case COMPANY__TARGET_MARKET:
-            case COMPANY__ASSIGNED_TO:
-            case COMPANY__STATUS:
-            case COMPANY__COUNTRY:
-            case COMPANY__INDUSTRY:
-            case COMPANY__SIZE:
-            case COMPANY__SCENARIO:
-            case COMPANY__CADENCE:
+        switch (logicRole) {
+            case "COMPANY__NAME":
+            case "COMPANY__STATUS__CHANGED_DATE_READY_TO_PROSPECT":
+            case "COMPANY__DISCARDED_REASONS":
+            case "COMPANY__NURTURING_REASONS":
+            case "COMPANY__SOURCE":
+            case "COMPANY__TARGET_MARKET":
+            case "COMPANY__ASSIGNED_TO":
+            case "COMPANY__STATUS":
+            case "COMPANY__COUNTRY":
+            case "COMPANY__INDUSTRY":
+            case "COMPANY__SIZE":
+            case "COMPANY__SCENARIO":
+            case "COMPANY__CADENCE":
                 break;
             default:
-                ExtendedAttribute attribute = attributes.get(k);
-                if (attribute == null) attribute = new ExtendedAttribute();
-                attribute.assign(lrole, v);
-                attributes.put(k, attribute);
+                ExtendedAttribute attribute = new ExtendedAttribute();
+                if (logicRole != null && !logicRole.equals("")) {
+                    try {
+                        lrole = CompanyLogicRoles.valueOf(logicRole);
+                        attribute.assign(lrole, v);
+                        attributes.put(k, attribute);
+                        result = attribute;
+                    } catch (Exception e) {
+                    }
+                }
                 break;
         }
-
     }
 
 }

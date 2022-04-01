@@ -60,6 +60,8 @@ public class Opportunity {
     @Audited
     public int status; //    OPPORTUNITY__STATUS
     @Audited
+    public int prevStatus;
+    @Audited
     public String statusFieldID;
     @Audited
     @Temporal(TemporalType.TIMESTAMP)
@@ -117,4 +119,5 @@ public class Opportunity {
     @Cascade(value = {org.hibernate.annotations.CascadeType.ALL})
     @ToString.Exclude
     public Map<String, ExtendedAttribute> attributes;
+
 }

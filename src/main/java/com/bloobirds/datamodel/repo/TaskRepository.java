@@ -19,7 +19,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -223,25 +222,36 @@ public class TaskRepository implements PanacheRepositoryBase<Task,BBObjectID> {
     }
 
     private void addAttribute(Map<String, ExtendedAttribute> attributes, KMesg data, String k, String v) {
-        if (v == null) return; // bug panache
+
+        if (v == null) {
+            attributes.remove(k);
+            return; // BUG Pnache! no podemos guardar los null o el persist no hace update y da duplicate key
+        }
+
+        ExtendedAttribute result = null;
 
         String logicRole = data.frozenModel.task.fieldsModel.get(k);
-        TaskLogicRoles lrole = TaskLogicRoles.NONE;
-        if (logicRole != null && !logicRole.equals(""))
-            lrole = TaskLogicRoles.valueOf(logicRole);
+        TaskLogicRoles lrole;
 
-        switch (lrole) {
-            case TASK__ASSIGNED_TO:
-            case TASK__SCHEDULED_DATETIME:
-            case TASK__COMPANY:
-            case TASK__TITLE:
-            case TASK__STATUS:
-            case TASK__TASK_TYPE:
+        switch (logicRole) {
+            case "TASK__ASSIGNED_TO":
+            case "TASK__SCHEDULED_DATETIME":
+            case "TASK__COMPANY":
+            case "TASK__TITLE":
+            case "TASK__STATUS":
+            case "TASK__TASK_TYPE":
                 break;
             default:
                 ExtendedAttribute attribute = new ExtendedAttribute();
-                attribute.assign(lrole, v);
-                attributes.put(k, attribute);
+                if (logicRole != null && !logicRole.equals("")) {
+                    try {
+                        lrole = TaskLogicRoles.valueOf(logicRole);
+                        attribute.assign(lrole, v);
+                        attributes.put(k, attribute);
+                        result = attribute;
+                    } catch (Exception e) {
+                    }
+                }
                 break;
         }
     }
@@ -258,5 +268,10 @@ public class TaskRepository implements PanacheRepositoryBase<Task,BBObjectID> {
         }
 
         return result;
+    }
+
+    @Transactional
+    public void deleteByCompany(Company c) {
+        delete("company", c);
     }
 }

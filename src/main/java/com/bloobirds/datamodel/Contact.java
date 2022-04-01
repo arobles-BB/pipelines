@@ -44,7 +44,9 @@ public class Contact {
     @Audited(withModifiedFlag=true)
     public int status; // LEAD__STATUS
     @Audited
-    public String statusPicklistID; // status fieldID en caso de que no sea uno con Logic Role
+    public int prevStatus;
+    @Audited
+    public String statusFieldID; // status fieldID en caso de que no sea uno con Logic Role
     @Audited
     @Temporal(TemporalType.TIMESTAMP)
     public Date dateStatusUpdate;
