@@ -57,7 +57,7 @@ public class Opportunity {
     public int type; //    OPPORTUNITY__TYPE
     public String typeFieldID;
 
-    @Audited
+    @Audited(withModifiedFlag=true)
     public int status; //    OPPORTUNITY__STATUS
     @Audited
     public int prevStatus;
